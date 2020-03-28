@@ -5,6 +5,8 @@ assembling abstract definitions of logic circuits.
 """
 
 from __future__ import annotations
+from typing import Sequence
+from parts import parts
 import doctest
 
 class bit():
@@ -86,16 +88,25 @@ class bits(list):
     def __or__(self: bits, other: bits):
         return bits([x | y for (x, y) in zip(self, other)])
 
-    def __rshift__(self, other):
+    def __rshift__(self: bits, other: int) -> bits:
         return bits([constant(0)]*other) @ bits(self[0:len(self)-other])
 
-    def __matmul__(self, other):
+    def __truediv__(self: bits, other) -> Sequence[bits]:
+        if type(other) is list and len(other) > 0 and type(other[0]) is int:
+            return self / (len(self)//other[0]) # Parts of length `other`.
+        else:
+            return map(bits, parts(self, other)) # Number of parts is `other`.
+
+    def __matmul__(self: bits, other) -> bits:
         if type(other) is int: # Right rotation.
             return bits(self[len(self)-other:]) @ bits(self[0:len(self)-other])
         else: # Concatenation.
             result = [b for b in self]
             result.extend([b for b in other])
             return bits(result)
+
+    def __int__(self: bits) -> int:
+        return sum(int(b)*(2**i) for (i, b) in zip(range(len(self)), reversed(self)))
 
 if __name__ == "__main__":
     doctest.testmod()
