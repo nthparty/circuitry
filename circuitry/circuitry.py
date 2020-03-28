@@ -86,5 +86,16 @@ class bits(list):
     def __or__(self: bits, other: bits):
         return bits([x | y for (x, y) in zip(self, other)])
 
+    def __rshift__(self, other):
+        return bits([constant(0)]*other) @ bits(self[0:len(self)-other])
+
+    def __matmul__(self, other):
+        if type(other) is int: # Right rotation.
+            return bits(self[len(self)-other:]) @ bits(self[0:len(self)-other])
+        else: # Concatenation.
+            result = [b for b in self]
+            result.extend([b for b in other])
+            return bits(result)
+
 if __name__ == "__main__":
     doctest.testmod()
