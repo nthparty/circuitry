@@ -77,6 +77,8 @@ class output(bit):
     def __init__(self: bit, b: bit):
         self.value = b.value
         self.gate = b.gate
+        bit._circuit.final(self)
+        self.gate.bit = self
 
 class bits(list):
     """
