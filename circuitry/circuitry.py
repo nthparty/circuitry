@@ -4,9 +4,10 @@ Embedded domain-specific combinator library for
 assembling abstract definitions of logic circuits.
 """
 
+from parts import parts
+from circuit import *
 from __future__ import annotations
 from typing import Sequence
-from parts import parts
 import doctest
 
 class bit():
@@ -18,8 +19,17 @@ class bit():
     circuit built up out of those operators.
     """
 
-    def __init__(self, value):
+    @staticmethod
+    def circuit(circuit_ = None):
+        if circuit_ is not None:
+            bit._circuit = circuit_
+        else:
+            bit._circuit.prune_and_stable_topological_sort(lambda b: type(b) is output)
+            return bit._circuit
+
+    def __init__(self, value, gate_ = None):
         self.value = value
+        self.gate = gate(attributes = {'bit': self}) if gate_ is None else gate_
 
     def __invert__(self: bit) -> bit:
         return bit(1 - self.value)
@@ -64,13 +74,29 @@ class input_two(input):
 class output(bit):
     """Bit that is designated an output."""
 
-    def __init__(self, value):
-        self.value = value
+    def __init__(self: bit, b: bit):
+        self.value = b.value
+        self.gate = b.gate
 
 class bits(list):
     """
     Class for representing a vector of abstract bits.
     """
+
+    @staticmethod
+    def from_byte(byte_: int, constructor = bit) -> bits:
+        return bits([
+            constructor(bit_)
+            for bit_ in reversed([(byte_>>i)%2 for i in range(8)])
+        ])
+
+    @staticmethod
+    def from_bytes(bytes_, constructor = bit) -> bits:
+        return bits([
+            bit_
+            for byte in bytes_
+            for bit_ in bits.from_byte(byte_, constructor)
+        ])
 
     @staticmethod
     def zeros(n: int) -> bits:
