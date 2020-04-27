@@ -1,7 +1,8 @@
 """Embedded DSL for assembling logic circuits.
 
 Embedded domain-specific combinator library for
-assembling abstract definitions of logic circuits.
+assembling abstract definitions of logic circuits
+and synthesizing circuits from those definitions.
 """
 
 from parts import parts
@@ -40,6 +41,12 @@ class bit():
     def __rand__(self: bit, other) -> bit:
         return self & (constant(other) if type(other) is int else other)
 
+    def __gt__(self: bit, other: bit) -> bit: # NIMP operation.
+        return bit(1 if self.value > other.value else 0)
+
+    def __lt__(self: bit, other: bit) -> bit: # NIF operation.
+        return bit(1 if self.value < other.value else 0)
+
     def __xor__(self: bit, other: bit) -> bit:
         return bit(self.value ^ other.value)
 
@@ -51,6 +58,21 @@ class bit():
 
     def __ror__(self: bit, other) -> bit:
         return self | (constant(other) if type(other) is int else other)
+
+    def __mod__(self: bit, other: bit) -> bit: # NOR operation.
+        return bit(0 if self.value | other.value else 1)
+
+    def __eq__(self: bit, other: bit) -> bit: # XNOR operation.
+        return bit(1 if self.value == other.value else 0)
+
+    def __ge__(self: bit, other: bit) -> bit: # IF operation.
+        return bit(1 if self.value >= other.value else 0)
+
+    def __le__(self: bit, other: bit) -> bit: # IMP operation.
+        return bit(1 if self.value <= other.value else 0)
+
+    def __matmul__(self: bit, other: bit) -> bit: # NAND operation.
+        return bit(0 if self.value & other.value else 1)
 
     def __int__(self: bit) -> int:
         return self.value
