@@ -35,6 +35,9 @@ class bit():
     def __invert__(self: bit) -> bit:
         return bit(1 - self.value)
 
+    def __pos__(self: bit) -> bit:
+        return bit(self.value)
+
     def __and__(self: bit, other: bit) -> bit:
         return bit(self.value & other.value)
 
