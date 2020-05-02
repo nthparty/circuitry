@@ -44,8 +44,14 @@ class bit():
     def __gt__(self: bit, other: bit) -> bit: # NIMP operation.
         return bit(1 if self.value > other.value else 0)
 
+    def __lshift__(self: bit, other: bit) -> bit: # FST operation.
+        return bit(self.value)
+
     def __lt__(self: bit, other: bit) -> bit: # NIF operation.
         return bit(1 if self.value < other.value else 0)
+
+    def __rshift__(self: bit, other: bit) -> bit: # SND operation.
+        return bit(other.value)
 
     def __xor__(self: bit, other: bit) -> bit:
         return bit(self.value ^ other.value)
@@ -65,8 +71,14 @@ class bit():
     def __eq__(self: bit, other: bit) -> bit: # XNOR operation.
         return bit(1 if self.value == other.value else 0)
 
+    def __floordiv__(self: bit, other: bit) -> bit: # NSND operation.
+        return bit(1 - other.value)
+
     def __ge__(self: bit, other: bit) -> bit: # IF operation.
         return bit(1 if self.value >= other.value else 0)
+
+    def __truediv__(self: bit, other: bit) -> bit: # NFST operation.
+        return bit(1 - self.value)
 
     def __le__(self: bit, other: bit) -> bit: # IMP operation.
         return bit(1 if self.value <= other.value else 0)
