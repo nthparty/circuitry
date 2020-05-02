@@ -5,10 +5,10 @@ assembling abstract definitions of logic circuits
 and synthesizing circuits from those definitions.
 """
 
-from parts import parts
-from circuit import *
 from __future__ import annotations
 from typing import Sequence
+from parts import parts
+from circuit import *
 import doctest
 
 class bit():
