@@ -315,27 +315,30 @@ class bits(list):
     def nand_(self: bits, other) -> bits:
         return bits([x.nand_(y) for (x, y) in zip(self, other)])
 
-    def __matmul__(self: bits, other) -> bits:
-        if type(other) is int: # Right rotation.
-            return bits(self[len(self)-other:]) @ bits(self[0:len(self)-other])
-        else: # Concatenation.
-            result = [b for b in self]
-            result.extend([b for b in other])
-            return bits(result)
-
     def __rshift__(self: bits, other) -> bits:
-        return bits([constant(0)]*other) @ bits(self[0:len(self)-other])
+        '''Overloaded operator: rotation and shift operations.'''
+        if type(other) is set and type(list(other)[0]) is int: # Rotation.
+            quantity = list(other)[0]
+            return bits(self[len(self)-quantity:]) ** bits(self[0:len(self)-quantity])
+        else: # Shift
+            return bits([constant(0)]*other) ** bits(self[0:len(self)-other])
 
     def __lshift__(self: bits, other) -> bits:
-        return bits(self[other:]) @ bits([constant(0) for _ in range(other)])
+        return bits(self[other:]) ** bits([constant(0) for _ in range(other)])
 
     def __truediv__(self: bits, other) -> Sequence[bits]:
         if type(other) is list and len(other) > 0 and type(other[0]) is int:
-            return map(bits, parts(self, length=other)) # Number of parts is `other`.
+            return map(bits, parts(self, length=other)) # Sequence of lengths.
         elif type(other) is set and len(other) == 1 and type(list(other)[0]) is int:
             return self / (len(self)//list(other)[0]) # Parts of length `other`.
         else:
             return map(bits, parts(self, other)) # Number of parts is `other`.
+
+    def __pow__(self: bits, other) -> bits:
+        '''Concatenation of bit vectors.'''
+        result = [b for b in self]
+        result.extend([b for b in other])
+        return bits(result)
 
 def constants(l):
     return bits(map(constant, l))
