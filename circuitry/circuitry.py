@@ -228,37 +228,92 @@ class bits(list):
     def zeros(n: int) -> bits:
         return bits([constant(0)]*n)
 
-    def __invert__(self: bits):
-        return bits([~x for x in self])
+    def __int__(self: bits) -> int:
+        return sum(int(b)*(2**i) for (i, b) in zip(range(len(self)), reversed(self)))
 
-    def __and__(self: bits, other: bits):
-        return bits([x & y for (x, y) in zip(self, other)])
+    def not_(self: bits) -> bits:
+        return bits([x.not_() for x in self])
 
-    def __xor__(self: bits, other: bits):
-        return bits([x ^ y for (x, y) in zip(self, other)])
+    def __invert__(self: bits) -> bits:
+        return bits([x.not_() for x in self])
 
-    def __or__(self: bits, other: bits):
-        return bits([x | y for (x, y) in zip(self, other)])
+    def and_(self: bits, other: bits) -> bits:
+        return bits([x.and_(y) for (x, y) in zip(self, other)])
 
-    def nif(self: bits, other: bits) -> bits:
-        return bits([x.nif(y) for (x, y) in zip(self, other)])
+    def __and__(self: bits, other: bits) -> bits:
+        return bits([x.and_(y) for (x, y) in zip(self, other)])
 
     def nimp(self: bits, other: bits) -> bits:
-        return bits([x.nimp(y) for (x, y) in zip(self, other)])
+        return bits([x.nimp_(y) for (x, y) in zip(self, other)])
 
-    def __rshift__(self: bits, other):
-        return bits([constant(0)]*other) @ bits(self[0:len(self)-other])
+    def nimp_(self: bits, other: bits) -> bits:
+        return bits([x.nimp_(y) for (x, y) in zip(self, other)])
 
-    def __lshift__(self: bits, other):
-        return bits(self[other:]) @ bits([constant(0) for _ in range(other)])
+    def __gt__(self: bits, other: bits) -> bits:
+        return bits([x.nimp_(y) for (x, y) in zip(self, other)])
 
-    def __truediv__(self: bits, other) -> Sequence[bits]:
-        if type(other) is list and len(other) > 0 and type(other[0]) is int:
-            return map(bits, parts(self, length=other)) # Number of parts is `other`.
-        elif type(other) is set and len(other) == 1 and type(list(other)[0]) is int:
-            return self / (len(self)//list(other)[0]) # Parts of length `other`.
-        else:
-            return map(bits, parts(self, other)) # Number of parts is `other`.
+    def nif(self: bits, other: bits) -> bits:
+        return bits([x.nif_(y) for (x, y) in zip(self, other)])
+
+    def nif_(self: bits, other: bits) -> bits:
+        return bits([x.nif_(y) for (x, y) in zip(self, other)])
+
+    def __lt__(self: bits, other: bits) -> bits:
+        return bits([x.nif_(y) for (x, y) in zip(self, other)])
+
+    def xor(self: bits, other: bits) -> bits:
+        return bits([x.xor_(y) for (x, y) in zip(self, other)])
+
+    def xor_(self: bits, other: bits) -> bits:
+        return bits([x.xor_(y) for (x, y) in zip(self, other)])
+
+    def __xor__(self: bits, other: bits) -> bits:
+        return bits([x.xor_(y) for (x, y) in zip(self, other)])
+
+    def or_(self: bits, other: bits) -> bits:
+        return bits([x.or_(y) for (x, y) in zip(self, other)])
+
+    def __or__(self: bits, other: bits) -> bits:
+        return bits([x.or_(y) for (x, y) in zip(self, other)])
+
+    def nor(self: bits, other: bits) -> bits:
+        return bits([x.nor_(y) for (x, y) in zip(self, other)])
+
+    def nor_(self: bits, other: bits) -> bits:
+        return bits([x.nor_(y) for (x, y) in zip(self, other)])
+
+    def __mod__(self, other) -> bits:
+        return bits([x.nor_(y) for (x, y) in zip(self, other)])
+
+    def xnor(self: bits, other: bits) -> bits:
+        return bits([x.xnor_(y) for (x, y) in zip(self, other)])
+
+    def xnor_(self: bits, other: bits) -> bits:
+        return bits([x.xnor_(y) for (x, y) in zip(self, other)])
+
+    def __eq__(self: bits, other: bits) -> bits:
+        return bits([x.xnor_(y) for (x, y) in zip(self, other)])
+
+    def if_(self: bits, other: bits) -> bits:
+        return bits([x.if_(y) for (x, y) in zip(self, other)])
+
+    def __ge__(self: bits, other: bits) -> bits:
+        return bits([x.if_(y) for (x, y) in zip(self, other)])
+
+    def imp(self: bits, other: bits) -> bits:
+        return bits([x.imp_(y) for (x, y) in zip(self, other)])
+
+    def imp_(self: bits, other: bits) -> bits:
+        return bits([x.imp_(y) for (x, y) in zip(self, other)])
+
+    def __le__(self: bits, other: bits) -> bits:
+        return bits([x.imp_(y) for (x, y) in zip(self, other)])
+
+    def nand(self: bits, other) -> bits:
+        return bits([x.nand_(y) for (x, y) in zip(self, other)])
+
+    def nand_(self: bits, other) -> bits:
+        return bits([x.nand_(y) for (x, y) in zip(self, other)])
 
     def __matmul__(self: bits, other) -> bits:
         if type(other) is int: # Right rotation.
@@ -268,8 +323,19 @@ class bits(list):
             result.extend([b for b in other])
             return bits(result)
 
-    def __int__(self: bits) -> int:
-        return sum(int(b)*(2**i) for (i, b) in zip(range(len(self)), reversed(self)))
+    def __rshift__(self: bits, other) -> bits:
+        return bits([constant(0)]*other) @ bits(self[0:len(self)-other])
+
+    def __lshift__(self: bits, other) -> bits:
+        return bits(self[other:]) @ bits([constant(0) for _ in range(other)])
+
+    def __truediv__(self: bits, other) -> Sequence[bits]:
+        if type(other) is list and len(other) > 0 and type(other[0]) is int:
+            return map(bits, parts(self, length=other)) # Number of parts is `other`.
+        elif type(other) is set and len(other) == 1 and type(list(other)[0]) is int:
+            return self / (len(self)//list(other)[0]) # Parts of length `other`.
+        else:
+            return map(bits, parts(self, other)) # Number of parts is `other`.
 
 def constants(l):
     return bits(map(constant, l))
