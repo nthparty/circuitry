@@ -21,4 +21,8 @@ The package is available on PyPI::
 The library can be imported in the usual ways::
 
     import circuitry
-    from circuitry import circuitry
+    from circuitry import *
+
+Style conventions are enforced using `Pylint <https://www.pylint.org/>`_::
+
+    pylint circuitry

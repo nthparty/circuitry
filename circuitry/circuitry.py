@@ -7,9 +7,9 @@ and synthesizing circuits from those definitions.
 
 from __future__ import annotations
 from typing import Sequence
+import doctest
 from parts import parts
 from circuit import *
-import doctest
 
 class bit():
     """
@@ -24,15 +24,16 @@ class bit():
     _hook_operation = None
 
     @staticmethod
-    def circuit(circuit_ = None):
+    def circuit(circuit_=None):
         if circuit_ is not None:
             bit._circuit = circuit_
+            return None
         else:
             bit._circuit.prune_and_topological_sort_stable()
             return bit._circuit
 
     @staticmethod
-    def hook_operation(hook = None):
+    def hook_operation(hook=None):
         bit._hook_operation = hook
 
     @staticmethod
@@ -40,7 +41,7 @@ class bit():
         # Ensure second argument is a `bit`.
         args = list(args)
         if len(args) == 2:
-            args[1] = constant(args[1]) if type(args[1]) is int else args[1]
+            args[1] = constant(args[1]) if isinstance(args[1], int) else args[1]
 
         # Compute the value of the result of the operation on the arguments.
         v = o(*[a.value for a in args])
@@ -55,18 +56,19 @@ class bit():
         return bit.constructor(*args)(v, bit.gate(o, [a.gate for a in args]))
 
     @staticmethod
-    def constructor(b1, b2 = None):
+    def constructor(b1, b2=None):
         return bit
-
         # The inference code below is not currently in use.
-        if type(b1) is input_one and type(b2) is input_one:
+        """
+        if isinstance(b1, input_one) and isinstance(b2, input_one):
             return input_one
-        elif type(b1) is input_two and type(b2) is input_two:
+        elif isinstance(b1, input_two) and isinstance(b2, input_two):
             return input_two
-        elif type(b1) in [input_one, input_two] and b2 is None:
+        elif isinstance(b1, (input_one, input_two)) and b2 is None:
             return type(b1)
         else:
             return bit
+        """
 
     @staticmethod
     def gate(operation, igs):
@@ -75,7 +77,7 @@ class bit():
             ig.output(g)
         return g
 
-    def __init__(self, value, gate_ = None):
+    def __init__(self, value, gate_=None):
         self.value = value
         self.gate = bit._circuit.gate() if gate_ is None else gate_
 
@@ -95,7 +97,7 @@ class bit():
         return bit.operation(op.and_, self, other)
 
     def __rand__(self, other):
-        return self & (constant(other) if type(other) is int else other)
+        return self & (constant(other) if isinstance(other, int) else other)
 
     def nimp(self, other):
         return bit.operation(op.nimp_, self, other)
@@ -125,7 +127,7 @@ class bit():
         return bit.operation(op.xor_, self, other)
 
     def __rxor__(self, other):
-        return self ^ (constant(other) if type(other) is int else other)
+        return self ^ (constant(other) if isinstance(other, int) else other)
 
     def or_(self, other):
         return bit.operation(op.or_, self, other)
@@ -134,7 +136,7 @@ class bit():
         return bit.operation(op.or_, self, other)
 
     def __ror__(self, other):
-        return self | (constant(other) if type(other) is int else other)
+        return self | (constant(other) if isinstance(other, int) else other)
 
     def nor(self, other):
         return bit.operation(op.nor_, self, other)
@@ -180,29 +182,26 @@ class bit():
 
 class constant(bit):
     """Bit that is designated as a constant input."""
-    pass
 
 class input(bit):
     """Bit that is designated as a variable input."""
 
     def __init__(self: bit, value: int):
         self.value = value
-        self.gate = bit._circuit.gate(op.id_, is_input = True)
+        self.gate = bit._circuit.gate(op.id_, is_input=True)
 
 class input_one(input):
     """Bit that is designated as a variable input from one source."""
-    pass
 
 class input_two(input):
     """Bit that is designated as a variable input from a second source."""
-    pass
 
 class output(bit):
     """Bit that is designated an output."""
 
     def __init__(self: bit, b: bit):
         self.value = b.value
-        self.gate = bit._circuit.gate(op.id_, [b.gate], is_output = True)
+        self.gate = bit._circuit.gate(op.id_, [b.gate], is_output=True)
 
 class bits(list):
     """
@@ -210,17 +209,17 @@ class bits(list):
     """
 
     @staticmethod
-    def from_byte(byte_: int, constructor = bit) -> bits:
+    def from_byte(byte_: int, constructor=bit) -> bits:
         return bits([
             constructor(bit_)
             for bit_ in reversed([(byte_>>i)%2 for i in range(8)])
         ])
 
     @staticmethod
-    def from_bytes(bytes_, constructor = bit) -> bits:
+    def from_bytes(bytes_, constructor=bit) -> bits:
         return bits([
             bit_
-            for byte in bytes_
+            for byte_ in bytes_
             for bit_ in bits.from_byte(byte_, constructor)
         ])
 
@@ -317,7 +316,7 @@ class bits(list):
 
     def __rshift__(self: bits, other) -> bits:
         '''Overloaded operator: rotation and shift operations.'''
-        if type(other) is set and type(list(other)[0]) is int: # Rotation.
+        if isinstance(other, set) and isinstance(list(other)[0], int): # Rotation.
             quantity = list(other)[0]
             return bits(self[len(self)-quantity:]) ** bits(self[0:len(self)-quantity])
         else: # Shift
@@ -327,17 +326,17 @@ class bits(list):
         return bits(self[other:]) ** bits([constant(0) for _ in range(other)])
 
     def __truediv__(self: bits, other) -> Sequence[bits]:
-        if type(other) is list and len(other) > 0 and type(other[0]) is int:
+        if isinstance(other, list) and len(other) > 0 and isinstance(other[0], int):
             return map(bits, parts(self, length=other)) # Sequence of lengths.
-        elif type(other) is set and len(other) == 1 and type(list(other)[0]) is int:
+        elif isinstance(other, set) and len(other) == 1 and isinstance(list(other)[0], int):
             return self / (len(self)//list(other)[0]) # Parts of length `other`.
         else:
             return map(bits, parts(self, other)) # Number of parts is `other`.
 
     def __pow__(self: bits, other) -> bits:
         '''Concatenation of bit vectors.'''
-        result = [b for b in self]
-        result.extend([b for b in other])
+        result = list(self)
+        result.extend(list(other))
         return bits(result)
 
 def constants(l):
