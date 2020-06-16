@@ -5,7 +5,7 @@ with open("README.rst", "r") as fh:
 
 setup(
     name="circuitry",
-    version="0.0.0.5",
+    version="0.1.0",
     packages=["circuitry",],
     install_requires=["parts","circuit",],
     license="MIT",
