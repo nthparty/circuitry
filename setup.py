@@ -7,7 +7,7 @@ setup(
     name="circuitry",
     version="0.0.0.5",
     packages=["circuitry",],
-    install_requires=["circuit",],
+    install_requires=["parts","circuit",],
     license="MIT",
     url="https://github.com/nthparty/circuitry",
     author="Andrei Lapets",

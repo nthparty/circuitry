@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Sequence
 import doctest
 from parts import parts
-from circuit import *
+from circuit import op, gate, circuit
 
 class bit():
     """
@@ -57,7 +57,6 @@ class bit():
 
     @staticmethod
     def constructor(b1, b2=None):
-        return bit
         # The inference code below is not currently in use.
         """
         if isinstance(b1, input_one) and isinstance(b2, input_one):
@@ -69,6 +68,7 @@ class bit():
         else:
             return bit
         """
+        return bit
 
     @staticmethod
     def gate(operation, igs):
@@ -315,7 +315,7 @@ class bits(list):
         return bits([x.nand_(y) for (x, y) in zip(self, other)])
 
     def __rshift__(self: bits, other) -> bits:
-        '''Overloaded operator: rotation and shift operations.'''
+        """Overloaded operator: rotation and shift operations."""
         if isinstance(other, set) and isinstance(list(other)[0], int): # Rotation.
             quantity = list(other)[0]
             return bits(self[len(self)-quantity:]) ** bits(self[0:len(self)-quantity])
@@ -334,7 +334,7 @@ class bits(list):
             return map(bits, parts(self, other)) # Number of parts is `other`.
 
     def __pow__(self: bits, other) -> bits:
-        '''Concatenation of bit vectors.'''
+        """Concatenation of bit vectors."""
         result = list(self)
         result.extend(list(other))
         return bits(result)
