@@ -200,6 +200,9 @@ class output(bit):
     """Bit that is designated an output."""
 
     def __init__(self: bit, b: bit):
+        # Check if bit is ready as final output or whether there are others dependent on it.
+        if len(b.gate.outputs) > 0:
+            b = ~(~b)  # Preserve the bit by copying it to a new wire.
         self.value = b.value
         self.gate = bit._circuit.gate(op.id_, [b.gate], is_output=True)
 
