@@ -14,3 +14,5 @@ install:
 script:
   - pylint circuitry
   - nosetests
+after_success:
+  - coveralls

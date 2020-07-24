@@ -4,7 +4,7 @@ circuitry
 
 Embedded domain-specific combinator library for assembling abstract definitions of logic circuits.
 
-|pypi| |travis|
+|pypi| |travis| |coveralls|
 
 .. |pypi| image:: https://badge.fury.io/py/circuitry.svg
    :target: https://badge.fury.io/py/circuitry
@@ -12,6 +12,9 @@ Embedded domain-specific combinator library for assembling abstract definitions 
 
 .. |travis| image:: https://travis-ci.com/nthparty/circuitry.svg?branch=master
     :target: https://travis-ci.com/nthparty/circuitry
+
+.. |coveralls| image:: https://coveralls.io/repos/github/nthparty/circuitry/badge.svg?branch=master
+   :target: https://coveralls.io/github/nthparty/circuitry?branch=master
 
 Purpose
 -------
