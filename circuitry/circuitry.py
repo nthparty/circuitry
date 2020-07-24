@@ -72,10 +72,7 @@ class bit():
 
     @staticmethod
     def gate(operation, igs):
-        g = bit._circuit.gate(operation, igs)
-        for ig in igs:
-            ig.output(g)
-        return g
+        return bit._circuit.gate(operation, igs)
 
     def __init__(self, value, gate_=None):
         self.value = value
