@@ -18,6 +18,21 @@ class bit():
     also used to keep track of relationships between
     operators and to represent the wires within a
     circuit built up out of those operators.
+
+    >>> bit.hook_operation(lambda o, v, *args: None)
+    >>> bit.circuit(circuit())
+    >>> b = output(input(1).and_(input(1)))
+    >>> b.value == bit.circuit().evaluate([1,1])[0]
+    True
+    >>> def make_hook(bit_):
+    ...     def hook(o, v, *args):
+    ...         return bit_.constructor(*args)(v, bit_.gate(o, [a.gate for a in args]))
+    ...     return hook
+    >>> bit.hook_operation(make_hook(bit))
+    >>> bit.circuit(circuit())
+    >>> b = output(input(0).and_(input(0)))
+    >>> b.value == bit.circuit().evaluate([0,0])[0]
+    True
     """
 
     _circuit = None
@@ -82,99 +97,378 @@ class bit():
         return self.value
 
     def not_(self):
+        """
+        >>> outputs = []
+        >>> for x in [0, 1]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).not_())
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.not_, self)
 
     def __invert__(self):
+        """
+        >>> outputs = []
+        >>> for x in [0, 1]:
+        ...     bit.circuit(circuit())
+        ...     b = output(~input(x))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.not_, self)
 
     def and_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).and_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.and_, self, other)
 
     def __and__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) & input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.and_, self, other)
 
     def __rand__(self, other):
+        """
+        >>> bit.circuit(circuit())
+        >>> b = 0 & constant(1)
+        >>> b.value
+        0
+        """
         return self & (constant(other) if isinstance(other, int) else other)
 
     def nimp(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).nimp(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nimp_, self, other)
 
     def nimp_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).nimp_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nimp_, self, other)
 
     def __gt__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) > input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return self.nimp(other)
 
     def nif(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).nif(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nif_, self, other)
 
     def nif_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).nif_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nif_, self, other)
 
     def __lt__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) < input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return self.nif(other)
 
     def xor(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).xor(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.xor_, self, other)
 
     def xor_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).xor_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.xor_, self, other)
 
     def __xor__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) ^ input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.xor_, self, other)
 
     def __rxor__(self, other):
+        """
+        >>> bit.circuit(circuit())
+        >>> b =  1 ^ constant(0)
+        >>> b.value
+        1
+        """
         return self ^ (constant(other) if isinstance(other, int) else other)
 
     def or_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).or_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.or_, self, other)
 
     def __or__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) | input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.or_, self, other)
 
     def __ror__(self, other):
+        """
+        >>> bit.circuit(circuit())
+        >>> b = 1 | constant(0)
+        >>> b.value
+        1
+        """
         return self | (constant(other) if isinstance(other, int) else other)
 
     def nor(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).nor(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nor_, self, other)
 
     def nor_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).nor_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nor_, self, other)
 
     def __mod__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) % input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nor_, self, other)
 
     def xnor(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).xnor(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.xnor_, self, other)
 
     def xnor_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).xnor_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.xnor_, self, other)
 
     def __eq__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) == input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.xnor_, self, other)
 
     def if_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).if_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.if_, self, other)
 
     def __ge__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) >= input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.if_, self, other)
 
     def imp(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).imp(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.imp_, self, other)
 
     def imp_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).imp_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.imp_, self, other)
 
     def __le__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) <= input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.imp_, self, other)
 
     def nand(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).nand(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nand_, self, other)
 
     def nand_(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).nand_(input(y)))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nand_, self, other)
 
     def __matmul__(self, other):
+        """
+        >>> outputs = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x) @ input(y))
+        ...     outputs.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        >>> all(outputs)
+        True
+        """
         return bit.operation(op.nand_, self, other)
 
 class constant(bit):
@@ -194,7 +488,16 @@ class input_two(input):
     """Bit that is designated as a variable input from a second source."""
 
 class output(bit):
-    """Bit that is designated an output."""
+    """
+    Bit that is designated an output.
+
+    >>> bit.circuit(circuit())
+    >>> b0 = output(input(1).not_())
+    >>> b1 = output(b0.not_())
+    >>> b2 = output(b0)
+    >>> [b0.value, b1.value, b2.value]
+    [0, 1, 0]
+    """
 
     def __init__(self: bit, b: bit):
         # Check if bit is ready as final output or whether there are others dependent on it.
