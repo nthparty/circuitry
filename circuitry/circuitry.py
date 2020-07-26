@@ -520,6 +520,14 @@ class bits(list):
 
     @staticmethod
     def from_bytes(bytes_, constructor=bit) -> bits:
+        """
+        >>> bit.circuit(circuit())
+        >>> [b.value for b in bits.from_bytes(bytes([255]))]
+        [1, 1, 1, 1, 1, 1, 1, 1]
+        >>> bit.circuit(circuit())
+        >>> [b.value for b in bits.from_bytes(bytes([11, 0]))]
+        [0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+        """
         return bits([
             bit_
             for byte_ in bytes_
@@ -528,97 +536,460 @@ class bits(list):
 
     @staticmethod
     def zeros(n: int) -> bits:
+        """
+        >>> bit.circuit(circuit())
+        >>> xs = bits.zeros(3)
+        >>> ys = outputs(xs.not_())
+        >>> [y.value for y in ys]
+        [1, 1, 1]
+        """
         return bits([constant(0)]*n)
 
     def __int__(self: bits) -> int:
+        """
+        >>> bit.circuit(circuit())
+        >>> xs = constants([0, 0, 0])
+        >>> ys = outputs(xs.not_())
+        >>> int(ys)
+        7
+        """
         return sum(int(b)*(2**i) for (i, b) in zip(range(len(self)), reversed(self)))
 
     def not_(self: bits) -> bits:
+        """
+        >>> results = []
+        >>> for x in [0, 1]:
+        ...     bit.circuit(circuit())
+        ...     xs = inputs([x, x, x])
+        ...     ys = outputs(xs.not_())
+        ...     ns = [int(y) for y in ys]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x]))
+        >>> all(results)
+        True
+        """
         return bits([x.not_() for x in self])
 
     def __invert__(self: bits) -> bits:
+        """
+        >>> results = []
+        >>> for x in [0, 1]:
+        ...     bit.circuit(circuit())
+        ...     xs = inputs([x, x, x])
+        ...     ys = outputs(~xs)
+        ...     ns = [int(y) for y in ys]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x]))
+        >>> all(results)
+        True
+        """
         return bits([x.not_() for x in self])
 
     def and_(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.and_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.and_(y) for (x, y) in zip(self, other)])
 
     def __and__(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs & ys)
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.and_(y) for (x, y) in zip(self, other)])
 
     def nimp(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.nimp(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nimp_(y) for (x, y) in zip(self, other)])
 
     def nimp_(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.nimp_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nimp_(y) for (x, y) in zip(self, other)])
 
     def __gt__(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs > ys)
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nimp_(y) for (x, y) in zip(self, other)])
 
     def nif(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.nif(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nif_(y) for (x, y) in zip(self, other)])
 
     def nif_(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.nif_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nif_(y) for (x, y) in zip(self, other)])
 
     def __lt__(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs < ys)
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nif_(y) for (x, y) in zip(self, other)])
 
     def xor(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.xor(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.xor_(y) for (x, y) in zip(self, other)])
 
     def xor_(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.xor_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.xor_(y) for (x, y) in zip(self, other)])
 
     def __xor__(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs ^ ys)
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.xor_(y) for (x, y) in zip(self, other)])
 
     def or_(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.or_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.or_(y) for (x, y) in zip(self, other)])
 
     def __or__(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs | ys)
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.or_(y) for (x, y) in zip(self, other)])
 
     def nor(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.nor(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nor_(y) for (x, y) in zip(self, other)])
 
     def nor_(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.nor_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nor_(y) for (x, y) in zip(self, other)])
 
     def __mod__(self, other) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs % ys)
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nor_(y) for (x, y) in zip(self, other)])
 
     def xnor(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.xnor(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.xnor_(y) for (x, y) in zip(self, other)])
 
     def xnor_(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.xnor_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.xnor_(y) for (x, y) in zip(self, other)])
 
     def __eq__(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs == ys)
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.xnor_(y) for (x, y) in zip(self, other)])
 
     def if_(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.if_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.if_(y) for (x, y) in zip(self, other)])
 
     def __ge__(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs >= ys)
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.if_(y) for (x, y) in zip(self, other)])
 
     def imp(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.imp(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.imp_(y) for (x, y) in zip(self, other)])
 
     def imp_(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.imp_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.imp_(y) for (x, y) in zip(self, other)])
 
     def __le__(self: bits, other: bits) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs <= ys)
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.imp_(y) for (x, y) in zip(self, other)])
 
     def nand(self: bits, other) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.nand(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nand_(y) for (x, y) in zip(self, other)])
 
     def nand_(self: bits, other) -> bits:
+        """
+        >>> results = []
+        >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        ...     bit.circuit(circuit())
+        ...     (xs, ys) = (inputs([x, x, x]), inputs([y, y, y]))
+        ...     zs = outputs(xs.nand_(ys))
+        ...     ns = [int(z) for z in zs]
+        ...     c = bit.circuit()
+        ...     results.append(ns == c.evaluate([x, x, x, y, y, y]))
+        >>> all(results)
+        True
+        """
         return bits([x.nand_(y) for (x, y) in zip(self, other)])
 
     def __rshift__(self: bits, other) -> bits:
-        """Overloaded operator: rotation and shift operations."""
+        """
+        Overloaded operator: rotation and shift operations.
+
+        >>> bit.circuit(circuit())
+        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bs = bs >> 3
+        >>> [b.value for b in bs]
+        [0, 0, 0, 1, 1, 1, 1, 0]
+        >>> bit.circuit(circuit())
+        >>> bs = bits(map(bit, [0,0,0,0,1,1,1,1]))
+        >>> bs = bs >> {3}
+        >>> [b.value for b in bs]
+        [1, 1, 1, 0, 0, 0, 0, 1]
+        """
         if isinstance(other, set) and isinstance(list(other)[0], int): # Rotation.
             quantity = list(other)[0]
             return bits(self[len(self)-quantity:]) ** bits(self[0:len(self)-quantity])
@@ -626,9 +997,33 @@ class bits(list):
             return bits([constant(0)]*other) ** bits(self[0:len(self)-other])
 
     def __lshift__(self: bits, other) -> bits:
+        """
+        >>> bit.circuit(circuit())
+        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bs = bs << 3
+        >>> [b.value for b in bs]
+        [1, 0, 0, 0, 0, 0, 0, 0]
+        """
         return bits(self[other:]) ** bits([constant(0) for _ in range(other)])
 
     def __truediv__(self: bits, other) -> Sequence[bits]:
+        """
+        >>> bit.circuit(circuit())
+        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bss = list(bs / 2)
+        >>> ([b.value for b in bss[0]], [b.value for b in bss[1]])
+        ([1, 1, 1, 1], [0, 0, 0, 0])
+        >>> bit.circuit(circuit())
+        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bss = list(bs / {2})
+        >>> [[b.value for b in bs] for bs in bss]
+        [[1, 1], [1, 1], [0, 0], [0, 0]]
+        >>> bit.circuit(circuit())
+        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bss = list(bs / [1, 3, 4])
+        >>> [[b.value for b in bs] for bs in bss]
+        [[1], [1, 1, 1], [0, 0, 0, 0]]
+        """
         if isinstance(other, list) and len(other) > 0 and isinstance(other[0], int):
             return map(bits, parts(self, length=other)) # Sequence of lengths.
         elif isinstance(other, set) and len(other) == 1 and isinstance(list(other)[0], int):
