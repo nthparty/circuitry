@@ -120,6 +120,25 @@ class bit():
         """
         return bit.operation(op.not_, self)
 
+    def __rsub__(self, other):
+        """
+        >>> results = []
+        >>> for x in [0, 1]:
+        ...     bit.circuit(circuit())
+        ...     b = output(1 - input(x))
+        ...     results.append(int(b) == bit.circuit().evaluate([x])[0])
+        >>> all(results)
+        True
+        >>> bit.circuit(circuit())
+        >>> 2 - input(0)
+        Traceback (most recent call last):
+          ...
+        ValueError: can only subtract a bit from the integer 1
+        """
+        if other == 1:
+            return bit.operation(op.not_, self)
+        raise ValueError('can only subtract a bit from the integer 1')
+
     def and_(self, other):
         """
         >>> results = []
@@ -1031,11 +1050,15 @@ class bits(list):
         else:
             return map(bits, parts(self, other)) # Number of parts is `other`.
 
-    def __pow__(self: bits, other) -> bits:
+    def __add__(self: bits, other) -> bits:
         """Concatenation of bit vectors."""
         result = list(self)
         result.extend(list(other))
         return bits(result)
+
+    def __pow__(self: bits, other) -> bits:
+        """Concatenation of bit vectors."""
+        return self + other
 
 def constants(l):
     return bits(map(constant, l))
