@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Sequence
 import doctest
 from parts import parts
-from circuit import op, gate, circuit
+from circuit import op, gate, circuit, signature
 
 class bit():
     """
@@ -525,6 +525,12 @@ class output(bit):
         self.value = b.value
         self.gate = bit._circuit.gate(op.id_, [b.gate], is_output=True)
 
+class bits_type(int): # pylint: disable=R0903
+    """
+    Class for representing an input or output type of a
+    function decorated for automated synthesis.
+    """
+
 class bits(list):
     """
     Class for representing a vector of abstract bits.
@@ -563,6 +569,14 @@ class bits(list):
         [1, 1, 1]
         """
         return bits([constant(0)]*n)
+
+    def __new__(cls, argument = None) -> bits:
+        """
+        Return bits object given the supplied argument.
+        """
+        return bits_type(argument)\
+            if isinstance(argument, int) else\
+            list.__new__(cls, argument)
 
     def __int__(self: bits) -> int:
         """
@@ -1068,6 +1082,54 @@ def inputs(l):
 
 def outputs(l):
     return bits(map(output, l))
+
+def synthesize(f):
+    """
+    Decorator for automatically synthesizing a circuit from a
+    function that takes only `bit` and/or `bits` objects as its
+    arguments and returns an output of type `bit` or `bits`.
+
+    >>> @synthesize
+    ... def equal(x: bit, y: bit) -> bit:
+    ...     return (x & y) | ((1 - x) & (1 - y))
+    >>> xys = [bits([x, y]) for x in (0, 1) for y in (0, 1)]
+    >>> [equal.circuit.evaluate(xy) for xy in xys]
+    [[1], [0], [0], [1]]
+    >>> @synthesize
+    ... def conjunction(xy: bits(2)) -> bits(2):
+    ...     return (xy[0], xy[0] & xy[1])
+    >>> xys = [bits([x, y]) for x in (0, 1) for y in (0, 1)]
+    >>> [conjunction.circuit.evaluate(xy) for xy in xys]
+    [[0, 0], [0, 0], [1, 0], [1, 1]]
+    >>> @synthesize
+    ... def equal(x, y):
+    ...     return x & y
+    Traceback (most recent call last):
+      ...
+    RuntimeError: automated circuit synthesis failed
+    """
+    # Functions for determining types/signature from
+    # the type annotation of the decorated function.
+    type_in = lambda a: input(0) if a is bit else inputs([0] * a)
+    type_out = lambda a: output if a is bit else outputs
+
+    # For forward-compatibility with PEP 563.
+    eval_ = lambda a: eval(a) if isinstance(a, str) else a # pylint: disable=W0123
+
+    try:
+        # Construct the circuit and add it to the function as an attribute.
+        bit.circuit(circuit())
+        args_in = {
+            k: type_in(eval_(a))
+            for (k, a) in f.__annotations__.items() if k != 'return'
+        }
+        type_out(eval_(f.__annotations__['return']))(f(**args_in))
+        f.circuit = bit.circuit()
+    except:
+        raise RuntimeError('automated circuit synthesis failed') from None
+
+    # Return the original function.
+    return f
 
 if __name__ == "__main__":
     doctest.testmod() # pragma: no cover
