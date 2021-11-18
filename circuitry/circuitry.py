@@ -72,17 +72,15 @@ class bit():
 
     @staticmethod
     def constructor(b1, b2=None):
-        # The inference code below is not currently in use.
-        """
-        if isinstance(b1, input_one) and isinstance(b2, input_one):
-            return input_one
-        elif isinstance(b1, input_two) and isinstance(b2, input_two):
-            return input_two
-        elif isinstance(b1, (input_one, input_two)) and b2 is None:
-            return type(b1)
-        else:
-            return bit
-        """
+        # # The inference code below is not currently in use.
+        # if isinstance(b1, input_one) and isinstance(b2, input_one):
+        #     return input_one
+        # elif isinstance(b1, input_two) and isinstance(b2, input_two):
+        #     return input_two
+        # elif isinstance(b1, (input_one, input_two)) and b2 is None:
+        #     return type(b1)
+        # else:
+        #     return bit
         return bit
 
     @staticmethod
