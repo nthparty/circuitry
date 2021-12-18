@@ -4,14 +4,15 @@ circuitry
 
 Embedded domain-specific combinator library for assembling abstract definitions of logic circuits.
 
-|pypi| |travis| |coveralls|
+|pypi| |actions| |coveralls|
 
 .. |pypi| image:: https://badge.fury.io/py/circuitry.svg
    :target: https://badge.fury.io/py/circuitry
    :alt: PyPI version and link.
 
-.. |travis| image:: https://travis-ci.com/nthparty/circuitry.svg?branch=main
-   :target: https://travis-ci.com/nthparty/circuitry
+.. |actions| image:: https://github.com/nthparty/circuitry/workflows/lint-test-cover-docs/badge.svg
+   :target: https://github.com/nthparty/circuitry/actions/workflows/lint-test-cover-docs.yml
+   :alt: GitHub Actions status.
 
 .. |coveralls| image:: https://coveralls.io/repos/github/nthparty/circuitry/badge.svg?branch=main
    :target: https://coveralls.io/github/nthparty/circuitry?branch=main
