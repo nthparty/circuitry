@@ -24,7 +24,7 @@ Embedded domain-specific combinator library for assembling abstract definitions 
 
 Purpose
 -------
-This embedded domain-specific language (DSL) makes it possible to write an algorithm in Python that operates over bit vectors, and then to interpret that algorithm implementation as a circuit definition in order to synthesize a logic circuit represented using the `circuit <https://github.com/reity/circuit>`_ library.
+This embedded domain-specific language (DSL) makes it possible to write an algorithm in Python that operates over bit vectors, and then to interpret that algorithm implementation as a circuit definition in order to synthesize a logic circuit represented using the `circuit <https://github.com/reity/circuit>`_ library. Additional background information and examples can be found in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
 
 Package Installation and Usage
 ------------------------------
