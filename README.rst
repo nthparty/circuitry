@@ -4,11 +4,15 @@ circuitry
 
 Embedded domain-specific combinator library for assembling abstract definitions of logic circuits.
 
-|pypi| |actions| |coveralls|
+|pypi| |readthedocs| |actions| |coveralls|
 
 .. |pypi| image:: https://badge.fury.io/py/circuitry.svg
    :target: https://badge.fury.io/py/circuitry
    :alt: PyPI version and link.
+
+.. |readthedocs| image:: https://readthedocs.org/projects/circuitry/badge/?version=latest
+   :target: https://circuitry.readthedocs.io/en/latest/?badge=latest
+   :alt: Read the Docs documentation status.
 
 .. |actions| image:: https://github.com/nthparty/circuitry/workflows/lint-test-cover-docs/badge.svg
    :target: https://github.com/nthparty/circuitry/actions/workflows/lint-test-cover-docs.yml
@@ -16,6 +20,7 @@ Embedded domain-specific combinator library for assembling abstract definitions 
 
 .. |coveralls| image:: https://coveralls.io/repos/github/nthparty/circuitry/badge.svg?branch=main
    :target: https://coveralls.io/github/nthparty/circuitry?branch=main
+   :alt: Coveralls test coverage summary.
 
 Purpose
 -------
