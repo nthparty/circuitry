@@ -1,23 +1,20 @@
-"""Embedded DSL for assembling logic circuits.
-
-Embedded domain-specific combinator library for
-assembling abstract definitions of logic circuits
-and synthesizing circuits from those definitions.
+"""
+Embedded domain-specific combinator library for assembling abstract definitions
+of logic circuits and synthesizing circuits from those definitions.
 """
 
 from __future__ import annotations
-from typing import Sequence
+from typing import Sequence, Union, Callable
 import doctest
 from parts import parts
 from circuit import op, gate, circuit, signature
 
-class bit():
+class bit:
     """
-    Class for representing an abstract bit. Such a bit
-    can be interpreted concretely as a value, but it is
-    also used to keep track of relationships between
-    operators and to represent the wires within a
-    circuit built up out of those operators.
+    Class for representing an abstract bit. Such a bit can be interpreted
+    concretely as a value, but it is also used to keep track of relationships
+    between operators and to represent the wires within a circuit built up
+    out of those operators.
 
     >>> bit.hook_operation(lambda o, v, *args: None)
     >>> bit.circuit(circuit())
@@ -34,12 +31,16 @@ class bit():
     >>> b.value == bit.circuit().evaluate([0,0])[0]
     True
     """
-
     _circuit = None
     _hook_operation = None
 
     @staticmethod
-    def circuit(circuit_=None):
+    def circuit(circuit_: circuit = None) -> circuit:
+        """
+        Designate the circuit object that is under construction. Any invocation
+        of the :obj:`bit` constructor adds a gate to the circuit designated
+        using this method.
+        """
         if circuit_ is not None:
             bit._circuit = circuit_
             return None
@@ -48,11 +49,18 @@ class bit():
             return bit._circuit
 
     @staticmethod
-    def hook_operation(hook=None):
+    def hook_operation(hook: Callable = None):
+        """
+        Assign a function that is invoked whenever the :obj:`bit.operation` method
+        is used to create a new :obj:`bit`.
+        """
         bit._hook_operation = hook
 
     @staticmethod
-    def operation(o, *args):
+    def operation(o: Callable, *args) -> bit:
+        """
+        Apply the supplied operation method to zero or more :obj:`bit` arguments.
+        """
         # Ensure second argument is a `bit`.
         args = list(args)
         if len(args) == 2:
@@ -71,7 +79,10 @@ class bit():
         return bit.constructor(*args)(v, bit.gate(o, [a.gate for a in args]))
 
     @staticmethod
-    def constructor(b1, b2=None):
+    def constructor(b1: bit, b2: bit = None) -> type:
+        """
+        Return the constructor to use for instantiating a :obj:`bit` object.
+        """
         # # The inference code below is not currently in use.
         # if isinstance(b1, input_one) and isinstance(b2, input_one):
         #     return input_one
@@ -84,18 +95,34 @@ class bit():
         return bit
 
     @staticmethod
-    def gate(operation, igs):
+    def gate(operation: op, igs: Sequence[gate]) -> gate:
+        """
+        Add a gate to the designated circuit object that is under construction.
+        """
         return bit._circuit.gate(operation, igs)
 
-    def __init__(self, value, gate_=None):
+    def __init__(self: bit, value: int, gate_: gate = None):
+        """
+        Create an instance with the specified value and (if one is supplied)
+        designate an associate gate object.
+        """
         self.value = value
         self.gate = bit._circuit.gate() if gate_ is None else gate_
 
-    def __int__(self):
+    def __int__(self: bit) -> int:
+        """
+        Convert this bit into its integer representation.
+
+        >>> bit.circuit(circuit())
+        >>> int(bit(1))
+        1
+        """
         return self.value
 
-    def not_(self):
+    def not_(self: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for x in [0, 1]:
         ...     bit.circuit(circuit())
@@ -106,8 +133,10 @@ class bit():
         """
         return bit.operation(op.not_, self)
 
-    def __invert__(self):
+    def __invert__(self: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for x in [0, 1]:
         ...     bit.circuit(circuit())
@@ -118,8 +147,10 @@ class bit():
         """
         return bit.operation(op.not_, self)
 
-    def __rsub__(self, other):
+    def __rsub__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for x in [0, 1]:
         ...     bit.circuit(circuit())
@@ -137,32 +168,38 @@ class bit():
             return bit.operation(op.not_, self)
         raise ValueError('can only subtract a bit from the integer 1')
 
-    def and_(self, other):
+    def and_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).and_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.and_, self, other)
 
-    def __and__(self, other):
+    def __and__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) & input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.and_, self, other)
 
-    def __rand__(self, other):
+    def __rand__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> bit.circuit(circuit())
         >>> b = 0 & constant(1)
         >>> b.value
@@ -170,44 +207,52 @@ class bit():
         """
         return self & (constant(other) if isinstance(other, int) else other)
 
-    def nimp(self, other):
+    def nimp(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).nimp(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.nimp_, self, other)
 
-    def nimp_(self, other):
+    def nimp_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).nimp_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.nimp_, self, other)
 
-    def __gt__(self, other):
+    def __gt__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) > input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return self.nimp(other)
 
-    def nif(self, other):
+    def nif(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -218,68 +263,80 @@ class bit():
         """
         return bit.operation(op.nif_, self, other)
 
-    def nif_(self, other):
+    def nif_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).nif_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.nif_, self, other)
 
-    def __lt__(self, other):
+    def __lt__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) < input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return self.nif(other)
 
-    def xor(self, other):
+    def xor(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).xor(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.xor_, self, other)
 
-    def xor_(self, other):
+    def xor_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).xor_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.xor_, self, other)
 
-    def __xor__(self, other):
+    def __xor__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) ^ input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.xor_, self, other)
 
-    def __rxor__(self, other):
+    def __rxor__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> bit.circuit(circuit())
         >>> b =  1 ^ constant(0)
         >>> b.value
@@ -287,32 +344,38 @@ class bit():
         """
         return self ^ (constant(other) if isinstance(other, int) else other)
 
-    def or_(self, other):
+    def or_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).or_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.or_, self, other)
 
-    def __or__(self, other):
+    def __or__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) | input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.or_, self, other)
 
-    def __ror__(self, other):
+    def __ror__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> bit.circuit(circuit())
         >>> b = 1 | constant(0)
         >>> b.value
@@ -320,20 +383,24 @@ class bit():
         """
         return self | (constant(other) if isinstance(other, int) else other)
 
-    def nor(self, other):
+    def nor(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).nor(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.nor_, self, other)
 
-    def nor_(self, other):
+    def nor_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -344,145 +411,169 @@ class bit():
         """
         return bit.operation(op.nor_, self, other)
 
-    def __mod__(self, other):
+    def __mod__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) % input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.nor_, self, other)
 
-    def xnor(self, other):
+    def xnor(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).xnor(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.xnor_, self, other)
 
-    def xnor_(self, other):
+    def xnor_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).xnor_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.xnor_, self, other)
 
-    def __eq__(self, other):
+    def __eq__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) == input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.xnor_, self, other)
 
-    def if_(self, other):
+    def if_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).if_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.if_, self, other)
 
-    def __ge__(self, other):
+    def __ge__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) >= input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.if_, self, other)
 
-    def imp(self, other):
+    def imp(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).imp(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.imp_, self, other)
 
-    def imp_(self, other):
+    def imp_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).imp_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.imp_, self, other)
 
-    def __le__(self, other):
+    def __le__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) <= input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.imp_, self, other)
 
-    def nand(self, other):
+    def nand(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).nand(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.nand_, self, other)
 
-    def nand_(self, other):
+    def nand_(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).nand_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
         return bit.operation(op.nand_, self, other)
 
-    def __matmul__(self, other):
+    def __matmul__(self: bit, other: bit) -> bit:
         """
+        Bit operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x) @ input(y))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
@@ -493,7 +584,6 @@ class constant(bit):
 
 class input(bit):
     """Bit that is designated as a variable input."""
-
     def __init__(self: bit, value: int):
         self.value = value
         self.gate = bit._circuit.gate(op.id_, is_input=True)
@@ -515,7 +605,6 @@ class output(bit):
     >>> [b0.value, b1.value, b2.value]
     [0, 1, 0]
     """
-
     def __init__(self: bit, b: bit):
         # Check if bit is ready as final output or whether there are others dependent on it.
         if len(b.gate.outputs) > 0:
@@ -533,17 +622,21 @@ class bits(list):
     """
     Class for representing a vector of abstract bits.
     """
-
     @staticmethod
     def from_byte(byte_: int, constructor=bit) -> bits:
+        """
+        Convert a byte into a corresponding bit vector.
+        """
         return bits([
             constructor(bit_)
-            for bit_ in reversed([(byte_>>i)%2 for i in range(8)])
+            for bit_ in reversed([(byte_ >> i) % 2 for i in range(8)])
         ])
 
     @staticmethod
     def from_bytes(bytes_, constructor=bit) -> bits:
         """
+        Convert a vector of bytes into a corresponding bit vector.
+
         >>> bit.circuit(circuit())
         >>> [b.value for b in bits.from_bytes(bytes([255]))]
         [1, 1, 1, 1, 1, 1, 1, 1]
@@ -560,6 +653,8 @@ class bits(list):
     @staticmethod
     def zeros(n: int) -> bits:
         """
+        Create a vector (of the specified length) of constant zero bits.
+
         >>> bit.circuit(circuit())
         >>> xs = bits.zeros(3)
         >>> ys = outputs(xs.not_())
@@ -578,6 +673,8 @@ class bits(list):
 
     def __int__(self: bits) -> int:
         """
+        Convert a bit vector into an integer.
+
         >>> bit.circuit(circuit())
         >>> xs = constants([0, 0, 0])
         >>> ys = outputs(xs.not_())
@@ -588,6 +685,8 @@ class bits(list):
 
     def not_(self: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for x in [0, 1]:
         ...     bit.circuit(circuit())
@@ -603,6 +702,8 @@ class bits(list):
 
     def __invert__(self: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for x in [0, 1]:
         ...     bit.circuit(circuit())
@@ -618,6 +719,8 @@ class bits(list):
 
     def and_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -633,6 +736,8 @@ class bits(list):
 
     def __and__(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -648,6 +753,8 @@ class bits(list):
 
     def nimp(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -663,6 +770,8 @@ class bits(list):
 
     def nimp_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -678,6 +787,8 @@ class bits(list):
 
     def __gt__(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -693,6 +804,8 @@ class bits(list):
 
     def nif(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -708,6 +821,8 @@ class bits(list):
 
     def nif_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -723,6 +838,8 @@ class bits(list):
 
     def __lt__(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -738,6 +855,8 @@ class bits(list):
 
     def xor(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -753,6 +872,8 @@ class bits(list):
 
     def xor_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -768,6 +889,8 @@ class bits(list):
 
     def __xor__(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -783,6 +906,8 @@ class bits(list):
 
     def or_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -798,6 +923,8 @@ class bits(list):
 
     def __or__(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -813,6 +940,8 @@ class bits(list):
 
     def nor(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -828,6 +957,8 @@ class bits(list):
 
     def nor_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -841,8 +972,10 @@ class bits(list):
         """
         return bits([x.nor_(y) for (x, y) in zip(self, other)])
 
-    def __mod__(self, other) -> bits:
+    def __mod__(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -858,6 +991,8 @@ class bits(list):
 
     def xnor(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -873,6 +1008,8 @@ class bits(list):
 
     def xnor_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -888,6 +1025,8 @@ class bits(list):
 
     def __eq__(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -903,6 +1042,8 @@ class bits(list):
 
     def if_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -918,6 +1059,8 @@ class bits(list):
 
     def __ge__(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -933,6 +1076,8 @@ class bits(list):
 
     def imp(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -948,6 +1093,8 @@ class bits(list):
 
     def imp_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -963,6 +1110,8 @@ class bits(list):
 
     def __le__(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -976,8 +1125,10 @@ class bits(list):
         """
         return bits([x.imp_(y) for (x, y) in zip(self, other)])
 
-    def nand(self: bits, other) -> bits:
+    def nand(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -991,8 +1142,10 @@ class bits(list):
         """
         return bits([x.nand_(y) for (x, y) in zip(self, other)])
 
-    def nand_(self: bits, other) -> bits:
+    def nand_(self: bits, other: bits) -> bits:
         """
+        Bit vector operation method.
+
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
@@ -1008,7 +1161,7 @@ class bits(list):
 
     def __rshift__(self: bits, other) -> bits:
         """
-        Overloaded operator: rotation and shift operations.
+        Overloaded operator for performing rotation and shift operations.
 
         >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
@@ -1029,6 +1182,8 @@ class bits(list):
 
     def __lshift__(self: bits, other) -> bits:
         """
+        Overloaded operator for performing shift operations.
+
         >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
         >>> bs = bs << 3
@@ -1039,6 +1194,9 @@ class bits(list):
 
     def __truediv__(self: bits, other) -> Sequence[bits]:
         """
+        Overloaded operator for splitting a bit vector into a collection of
+        smaller bit vectors.
+
         >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
         >>> bss = list(bs / 2)
@@ -1062,23 +1220,35 @@ class bits(list):
         else:
             return map(bits, parts(self, other)) # Number of parts is `other`.
 
-    def __add__(self: bits, other) -> bits:
+    def __add__(self: bits, other: Union[bits, Sequence[int]]) -> bits:
         """Concatenation of bit vectors."""
         result = list(self)
         result.extend(list(other))
         return bits(result)
 
-    def __pow__(self: bits, other) -> bits:
+    def __pow__(self: bits, other: Union[bits, Sequence[int]]) -> bits:
         """Concatenation of bit vectors."""
         return self + other
 
-def constants(l):
+def constants(l: Sequence[int]) -> bits:
+    """
+    Synonym for concisely constructing a vector of constant-designated
+    :obj:`bit` objects.
+    """
     return bits(map(constant, l))
 
-def inputs(l):
+def inputs(l: Sequence[int]) -> bits:
+    """
+    Synonym for concisely constructing a vector of input-designated
+    :obj:`bit` objects.
+    """
     return bits(map(input, l))
 
-def outputs(l):
+def outputs(l: Sequence[int]) -> bits:
+    """
+    Synonym for concisely constructing a vector of output-designated
+    :obj:`bit` objects.
+    """
     return bits(map(output, l))
 
 def synthesize(f):
@@ -1123,6 +1293,13 @@ def synthesize(f):
         }
         type_out(eval_(f.__annotations__['return']))(f(**args_in))
         f.circuit = bit.circuit()
+
+        # Assign a signature to the circuit.
+        #size = lambda a: 1 if a is bit else a.length
+        #f.circuit.signature = signature(
+        #    [size(a) for (k, a) in f.__annotations__.items() if k != 'return'],
+        #    [size(a) for (k, a) in f.__annotations__.items() if k == 'return']
+        #)
     except:
         raise RuntimeError('automated circuit synthesis failed') from None
 
