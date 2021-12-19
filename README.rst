@@ -28,7 +28,7 @@ This embedded domain-specific language (DSL) makes it possible to write an algor
 
 Package Installation and Usage
 ------------------------------
-The package is available on PyPI::
+The package is available on `PyPI <https://pypi.org/project/circuitry/>`_::
 
     python -m pip install circuitry
 
@@ -51,7 +51,8 @@ Testing and Conventions
 -----------------------
 All unit tests are executed and their coverage is measured when using `nose <https://nose.readthedocs.io/>`_ (see ``setup.cfg`` for configution details)::
 
-    nosetests
+    python -m pip install nose coverage
+    nosetests --cover-erase
 
 Alternatively, all unit tests are included in the module itself and can be executed using `doctest <https://docs.python.org/3/library/doctest.html>`_::
 
@@ -59,11 +60,12 @@ Alternatively, all unit tests are included in the module itself and can be execu
 
 Style conventions are enforced using `Pylint <https://www.pylint.org/>`_::
 
+    python -m pip install pylint
     pylint circuitry
 
 Contributions
 -------------
-In order to contribute to the source code, open an issue or submit a pull request on the GitHub page for this library.
+In order to contribute to the source code, open an issue or submit a pull request on the `GitHub page <https://github.com/nthparty/circuitry>`_ for this library.
 
 Versioning
 ----------
