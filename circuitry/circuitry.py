@@ -16,11 +16,38 @@ class bit:
     between operators and to represent the wires within a circuit built up
     out of those operators.
 
+    It is first necessary to introduce a new circuit object and to designate
+    this object as the circuit that is being constructed.
+
+    >>> c = circuit()
+    >>> bit.circuit(c)
+
+    Subsequently, it is possible to instantiate subclasses of :obj:`bit` that
+    service specific roles (such as :obj:`input`, which represents an input
+    value into the overall circuit being constructed). An operator method such
+    as :obj:`bit.and_` can be used to operate on :obj:`bit` instances (and, at
+    the same time to introduce a gate into the circuit).
+
+    >>> b = output(input(1).and_(input(1)))
+
+    At this point, constructed circuit can be retrieved and evaluated on a
+    vector of bits.
+
+    >>> b.value == bit.circuit().evaluate([1, 1])[0]
+    True
+
+    It is possible to add custom hook functions that are applied when an operator
+    is introduced. If a hook function returns ``None``, then the default instance
+    of :obj:`bit` is returned when an operation is applied.
+
     >>> bit.hook_operation(lambda o, v, *args: None)
     >>> bit.circuit(circuit())
     >>> b = output(input(1).and_(input(1)))
-    >>> b.value == bit.circuit().evaluate([1,1])[0]
+    >>> b.value == bit.circuit().evaluate([1, 1])[0]
     True
+
+    More complex hook functions can also be introduced.
+
     >>> def make_hook(bit_):
     ...     def hook(o, v, *args):
     ...         return bit_.constructor(*args)(v, bit_.gate(o, [a.gate for a in args]))
@@ -28,11 +55,19 @@ class bit:
     >>> bit.hook_operation(make_hook(bit))
     >>> bit.circuit(circuit())
     >>> b = output(input(0).and_(input(0)))
-    >>> b.value == bit.circuit().evaluate([0,0])[0]
+    >>> b.value == bit.circuit().evaluate([0, 0])[0]
     True
     """
     _circuit = None
     _hook_operation = None
+
+    def __init__(self: bit, value: int, gate_: gate = None):
+        """
+        Create an instance with the specified value and (if one is supplied)
+        designate an associate gate object.
+        """
+        self.value = value
+        self.gate = bit._circuit.gate() if gate_ is None else gate_
 
     @staticmethod
     def circuit(circuit_: circuit = None) -> circuit:
@@ -40,6 +75,12 @@ class bit:
         Designate the circuit object that is under construction. Any invocation
         of the :obj:`bit` constructor adds a gate to the circuit designated
         using this method.
+
+        >>> c = circuit()
+        >>> bit.circuit(c)
+        >>> b = output(input(1).and_(input(1)))
+        >>> b.value == bit.circuit().evaluate([1, 1])[0]
+        True
         """
         if circuit_ is not None:
             bit._circuit = circuit_
@@ -53,6 +94,16 @@ class bit:
         """
         Assign a function that is invoked whenever the :obj:`bit.operation` method
         is used to create a new :obj:`bit`.
+
+        >>> def make_hook(bit_):
+        ...     def hook(o, v, *args):
+        ...         return bit_.constructor(*args)(v, bit_.gate(o, [a.gate for a in args]))
+        ...     return hook
+        >>> bit.hook_operation(make_hook(bit))
+        >>> bit.circuit(circuit())
+        >>> b = output(input(0).and_(input(0)))
+        >>> b.value == bit.circuit().evaluate([0, 0])[0]
+        True
         """
         bit._hook_operation = hook
 
@@ -60,6 +111,11 @@ class bit:
     def operation(o: Callable, *args) -> bit:
         """
         Apply the supplied operation method to zero or more :obj:`bit` arguments.
+
+        >>> bit.circuit(circuit())
+        >>> b = output(bit.operation(op.and_, input(1), input(1)))
+        >>> b.value == bit.circuit().evaluate([1, 1])[0]
+        True
         """
         # Ensure second argument is a `bit`.
         args = list(args)
@@ -82,6 +138,8 @@ class bit:
     def constructor(b1: bit, b2: bit = None) -> type:
         """
         Return the constructor to use for instantiating a :obj:`bit` object.
+        This method is used by the :obj:`bit.operation` and :obj:`bits.from_byte`
+        methods.
         """
         # # The inference code below is not currently in use.
         # if isinstance(b1, input_one) and isinstance(b2, input_one):
@@ -98,16 +156,18 @@ class bit:
     def gate(operation: op, igs: Sequence[gate]) -> gate:
         """
         Add a gate to the designated circuit object that is under construction.
+
+        >>> def make_hook(bit_):
+        ...     def hook(o, v, *args):
+        ...         return bit_.constructor(*args)(v, bit_.gate(o, [a.gate for a in args]))
+        ...     return hook
+        >>> bit.hook_operation(make_hook(bit))
+        >>> bit.circuit(circuit())
+        >>> b = output(input(0).and_(input(0)))
+        >>> b.value == bit.circuit().evaluate([0, 0])[0]
+        True
         """
         return bit._circuit.gate(operation, igs)
-
-    def __init__(self: bit, value: int, gate_: gate = None):
-        """
-        Create an instance with the specified value and (if one is supplied)
-        designate an associate gate object.
-        """
-        self.value = value
-        self.gate = bit._circuit.gate() if gate_ is None else gate_
 
     def __int__(self: bit) -> int:
         """
@@ -257,7 +317,7 @@ class bit:
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).nif(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
@@ -405,7 +465,7 @@ class bit:
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
         ...     bit.circuit(circuit())
         ...     b = output(input(x).nor_(input(y)))
-        ...     results.append(int(b) == bit.circuit().evaluate([x,y])[0])
+        ...     results.append(int(b) == bit.circuit().evaluate([x, y])[0])
         >>> all(results)
         True
         """
@@ -580,11 +640,25 @@ class bit:
         return bit.operation(op.nand_, self, other)
 
 class constant(bit):
-    """Bit that is designated as a constant input."""
+    """
+    Bit that is designated as a constant input.
+
+    >>> bit.circuit(circuit())
+    >>> constant(1).value
+    1
+    """
 
 class input(bit):
-    """Bit that is designated as a variable input."""
+    """
+    Bit that is designated as a variable input.
+
+    >>> bit.circuit(circuit())
+    >>> b0 = output(input(1).not_())
+    >>> b0.value
+    0
+    """
     def __init__(self: bit, value: int):
+        """Instantiate a bit that is designated as a variable input."""
         self.value = value
         self.gate = bit._circuit.gate(op.id_, is_input=True)
 
@@ -606,6 +680,9 @@ class output(bit):
     [0, 1, 0]
     """
     def __init__(self: bit, b: bit):
+        """
+        Instantiate a bit that is designated as an output.
+        """
         # Check if bit is ready as final output or whether there are others dependent on it.
         if len(b.gate.outputs) > 0:
             b = ~(~b)  # Preserve the bit by copying it to a new wire.
@@ -614,18 +691,36 @@ class output(bit):
 
 class bits_type(int): # pylint: disable=R0903
     """
-    Class for representing an input or output type of a
-    function decorated for automated synthesis.
+    Class for representing an input or output type of a function decorated
+    for automated synthesis. This class is used within the :obj:`bits`
+    constructor implementation.
     """
 
 class bits(list):
     """
     Class for representing a vector of abstract bits.
+
+    >>> bit.circuit(circuit())
+    >>> bs = bits([constant(1)] * 3)
+    >>> [b.value for b in bs]
+    [1, 1, 1]
     """
+    def __new__(cls, argument = None) -> bits:
+        """
+        Instantiate bit vector object given the supplied argument.
+        """
+        return bits_type(argument)\
+            if isinstance(argument, int) else\
+            list.__new__(cls, argument)
+
     @staticmethod
     def from_byte(byte_: int, constructor=bit) -> bits:
         """
         Convert a byte into a corresponding bit vector.
+
+        >>> bit.circuit(circuit())
+        >>> [b.value for b in bits.from_byte(255)]
+        [1, 1, 1, 1, 1, 1, 1, 1]
         """
         return bits([
             constructor(bit_)
@@ -662,14 +757,6 @@ class bits(list):
         [1, 1, 1]
         """
         return bits([constant(0)]*n)
-
-    def __new__(cls, argument = None) -> bits:
-        """
-        Return bits object given the supplied argument.
-        """
-        return bits_type(argument)\
-            if isinstance(argument, int) else\
-            list.__new__(cls, argument)
 
     def __int__(self: bits) -> int:
         """
@@ -1164,12 +1251,12 @@ class bits(list):
         Overloaded operator for performing rotation and shift operations.
 
         >>> bit.circuit(circuit())
-        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bs = bs >> 3
         >>> [b.value for b in bs]
         [0, 0, 0, 1, 1, 1, 1, 0]
         >>> bit.circuit(circuit())
-        >>> bs = bits(map(bit, [0,0,0,0,1,1,1,1]))
+        >>> bs = bits(map(bit, [0, 0, 0, 0, 1, 1, 1, 1]))
         >>> bs = bs >> {3}
         >>> [b.value for b in bs]
         [1, 1, 1, 0, 0, 0, 0, 1]
@@ -1185,7 +1272,7 @@ class bits(list):
         Overloaded operator for performing shift operations.
 
         >>> bit.circuit(circuit())
-        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bs = bs << 3
         >>> [b.value for b in bs]
         [1, 0, 0, 0, 0, 0, 0, 0]
@@ -1198,17 +1285,17 @@ class bits(list):
         smaller bit vectors.
 
         >>> bit.circuit(circuit())
-        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bss = list(bs / 2)
         >>> ([b.value for b in bss[0]], [b.value for b in bss[1]])
         ([1, 1, 1, 1], [0, 0, 0, 0])
         >>> bit.circuit(circuit())
-        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bss = list(bs / {2})
         >>> [[b.value for b in bs] for bs in bss]
         [[1, 1], [1, 1], [0, 0], [0, 0]]
         >>> bit.circuit(circuit())
-        >>> bs = bits(map(bit, [1,1,1,1,0,0,0,0]))
+        >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bss = list(bs / [1, 3, 4])
         >>> [[b.value for b in bs] for bs in bss]
         [[1], [1, 1, 1], [0, 0, 0, 0]]
@@ -1221,19 +1308,39 @@ class bits(list):
             return map(bits, parts(self, other)) # Number of parts is `other`.
 
     def __add__(self: bits, other: Union[bits, Sequence[int]]) -> bits:
-        """Concatenation of bit vectors."""
+        """
+        Concatenation of bit vectors.
+
+        >>> bit.circuit(circuit())
+        >>> bs = bits(map(bit, [1, 1])) + bits(map(bit, [0, 0]))
+        >>> [b.value for b in bs]
+        [1, 1, 0, 0]
+        """
         result = list(self)
         result.extend(list(other))
         return bits(result)
 
     def __pow__(self: bits, other: Union[bits, Sequence[int]]) -> bits:
-        """Concatenation of bit vectors."""
+        """
+        Concatenation of bit vectors.
+
+        >>> bit.circuit(circuit())
+        >>> bs = bits(map(bit, [1, 1])) ** bits(map(bit, [0, 0]))
+        >>> [b.value for b in bs]
+        [1, 1, 0, 0]
+        """
         return self + other
 
 def constants(l: Sequence[int]) -> bits:
     """
     Synonym for concisely constructing a vector of constant-designated
     :obj:`bit` objects.
+
+    >>> bit.circuit(circuit())
+    >>> xs = constants([0, 0, 0])
+    >>> ys = outputs(xs.not_())
+    >>> int(ys)
+    7
     """
     return bits(map(constant, l))
 
@@ -1241,6 +1348,15 @@ def inputs(l: Sequence[int]) -> bits:
     """
     Synonym for concisely constructing a vector of input-designated
     :obj:`bit` objects.
+
+    >>> results = []
+    >>> bit.circuit(circuit())
+    >>> xs = inputs([1, 1, 1])
+    >>> ys = outputs(xs.not_())
+    >>> ns = [int(y) for y in ys]
+    >>> c = bit.circuit()
+    >>> ns == c.evaluate([1, 1, 1])
+    True
     """
     return bits(map(input, l))
 
@@ -1248,27 +1364,49 @@ def outputs(l: Sequence[int]) -> bits:
     """
     Synonym for concisely constructing a vector of output-designated
     :obj:`bit` objects.
+
+    >>> bit.circuit(circuit())
+    >>> xs = bits.zeros(3)
+    >>> ys = outputs(xs.not_())
+    >>> [y.value for y in ys]
+    [1, 1, 1]
     """
     return bits(map(output, l))
 
-def synthesize(f):
+def synthesize(f: Callable) -> Callable:
     """
-    Decorator for automatically synthesizing a circuit from a
-    function that takes only `bit` and/or `bits` objects as its
-    arguments and returns an output of type `bit` or `bits`.
+    Decorator for automatically synthesizing a circuit from a function that
+    takes only :obj:`bit` and/or :obj:`bits` objects as its arguments and
+    returns an output of type :obj:`bit` or :obj:`bits`.
+
+    In the example below, a function ``equal`` is defined that determines
+    whether two bits are equivalent. The use of this decorator causes a
+    circuit that implements this function to be constructed.
 
     >>> @synthesize
     ... def equal(x: bit, y: bit) -> bit:
     ...     return (x & y) | ((1 - x) & (1 - y))
+
+    The circuit is introduced as an attribute of the function and can
+    be evaluated on :obj:`bits` objects.
+
     >>> xys = [bits([x, y]) for x in (0, 1) for y in (0, 1)]
     >>> [equal.circuit.evaluate(xy) for xy in xys]
     [[1], [0], [0], [1]]
+
+    This decorator can also be applied to functions that are defined
+    explicitly as operating on bit vectors (in the form of :obj:`bits`
+    objects).
+
     >>> @synthesize
     ... def conjunction(xy: bits(2)) -> bits(2):
     ...     return (xy[0], xy[0] & xy[1])
     >>> xys = [bits([x, y]) for x in (0, 1) for y in (0, 1)]
     >>> [conjunction.circuit.evaluate(xy) for xy in xys]
     [[0, 0], [0, 0], [1, 0], [1, 1]]
+
+    Functions to which this decorator is applied must have type annotations.
+
     >>> @synthesize
     ... def equal(x, y):
     ...     return x & y

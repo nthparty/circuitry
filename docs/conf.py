@@ -52,6 +52,7 @@ autodoc_member_order = 'bysource'
 autodoc_default_options = {
     'special-members': True,
     'exclude-members': ','.join([
+        '__new__',
         '__init__',
         '__weakref__',
         '__module__',
