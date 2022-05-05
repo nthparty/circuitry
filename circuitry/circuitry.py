@@ -653,7 +653,22 @@ class constant(bit):
     >>> bit.circuit(circuit())
     >>> constant(1).value
     1
+
+    When constructing a circuit, a gate with a nullary operator is added to
+    the circuit.
+
+    >>> bit.circuit(circuit())
+    >>> _ = output(constant(0))
+    >>> c = bit.circuit()
+    >>> c.count()
+    1
+    >>> c.evaluate([])
+    [0]
     """
+    def __init__(self: bit, value: int):
+        """Instantiate an instance that is designated as a variable input."""
+        self.value = value
+        self.gate = bit._circuit.gate(op.nf_ if self.value == 0 else op.nt_)
 
 class input(bit):
     """
