@@ -87,13 +87,26 @@ class bit:
         >>> b = output(input(1).and_(input(1)))
         >>> b.value == bit.circuit().evaluate([1, 1])[0]
         True
+
+        Invoking this method with no argument retrieves *and removes* the
+        circuit object (leaving no designated circuit object). Note that
+        because of the invocation of this method at the end of the above
+        example, the invocation below returns ``None``.
+
+        >>> bit.circuit() is None
+        True
         """
         if circuit_ is not None:
             bit._circuit = circuit_
             return None
-        else:
+
+        if bit._circuit is not None:
             bit._circuit.prune_and_topological_sort_stable()
-            return bit._circuit
+            c = bit._circuit
+            bit._circuit = None
+            return c
+
+        return None
 
     @staticmethod
     def hook_operation(hook: Optional[Callable] = None):
@@ -186,7 +199,6 @@ class bit:
         """
         Convert this :obj:`bit` instance into its integer representation.
 
-        >>> bit.circuit(circuit())
         >>> int(bit(1))
         1
         """
@@ -231,7 +243,6 @@ class bit:
         ...     results.append(int(b) == bit.circuit().evaluate([x])[0])
         >>> all(results)
         True
-        >>> bit.circuit(circuit())
         >>> 2 - input(0)
         Traceback (most recent call last):
           ...
@@ -273,7 +284,6 @@ class bit:
         """
         Operation for individual :obj:`bit` instances.
 
-        >>> bit.circuit(circuit())
         >>> b = 0 & constant(1)
         >>> b.value
         0
@@ -410,7 +420,6 @@ class bit:
         """
         Operation for individual :obj:`bit` instances.
 
-        >>> bit.circuit(circuit())
         >>> b =  1 ^ constant(0)
         >>> b.value
         1
@@ -449,7 +458,6 @@ class bit:
         """
         Operation for individual :obj:`bit` instances.
 
-        >>> bit.circuit(circuit())
         >>> b = 1 | constant(0)
         >>> b.value
         1
@@ -656,7 +664,6 @@ class constant(bit):
     """
     Instance of a :obj:`bit` that is designated as a constant value.
 
-    >>> bit.circuit(circuit())
     >>> constant(1).value
     1
 
@@ -682,7 +689,6 @@ class input(bit):
     """
     Instance of a :obj:`bit` that is designated as a variable input.
 
-    >>> bit.circuit(circuit())
     >>> b0 = output(input(1).not_())
     >>> b0.value
     0
@@ -741,7 +747,6 @@ class bits(list):
     Class for representing a *bit vector* (*i.e.*, a list of abstract :obj:`bit`
     instances).
 
-    >>> bit.circuit(circuit())
     >>> bs = bits([constant(1)] * 3)
     >>> [b.value for b in bs]
     [1, 1, 1]
@@ -759,7 +764,6 @@ class bits(list):
         """
         Convert a byte into a corresponding bit vector.
 
-        >>> bit.circuit(circuit())
         >>> [b.value for b in bits.from_byte(255)]
         [1, 1, 1, 1, 1, 1, 1, 1]
         """
@@ -773,10 +777,8 @@ class bits(list):
         """
         Convert a vector of bytes into a corresponding bit vector.
 
-        >>> bit.circuit(circuit())
         >>> [b.value for b in bits.from_bytes(bytes([255]))]
         [1, 1, 1, 1, 1, 1, 1, 1]
-        >>> bit.circuit(circuit())
         >>> [b.value for b in bits.from_bytes(bytes([11, 0]))]
         [0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
         """
@@ -796,6 +798,7 @@ class bits(list):
         >>> ys = outputs(xs.not_())
         >>> [y.value for y in ys]
         [1, 1, 1]
+        >>> _ = bit.circuit() # Remove designated circuit.
         """
         return bits([constant(0)]*n)
 
@@ -808,6 +811,7 @@ class bits(list):
         >>> ys = outputs(xs.not_())
         >>> int(ys)
         7
+        >>> _ = bit.circuit() # Remove designated circuit.
         """
         return sum(int(b)*(2**i) for (i, b) in zip(range(len(self)), reversed(self)))
 
@@ -1292,12 +1296,10 @@ class bits(list):
         Overloaded operator for performing rotation and shift operations on
         bit vectors.
 
-        >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bs = bs >> 3
         >>> [b.value for b in bs]
         [0, 0, 0, 1, 1, 1, 1, 0]
-        >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [0, 0, 0, 0, 1, 1, 1, 1]))
         >>> bs = bs >> {3}
         >>> [b.value for b in bs]
@@ -1313,7 +1315,6 @@ class bits(list):
         """
         Overloaded operator for performing shift operations on bit vectors.
 
-        >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bs = bs << 3
         >>> [b.value for b in bs]
@@ -1326,17 +1327,14 @@ class bits(list):
         Overloaded operator for splitting a bit vector into a collection of
         smaller bit vectors.
 
-        >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bss = list(bs / 2)
         >>> ([b.value for b in bss[0]], [b.value for b in bss[1]])
         ([1, 1, 1, 1], [0, 0, 0, 0])
-        >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bss = list(bs / {2})
         >>> [[b.value for b in bs] for bs in bss]
         [[1, 1], [1, 1], [0, 0], [0, 0]]
-        >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bss = list(bs / [1, 3, 4])
         >>> [[b.value for b in bs] for bs in bss]
@@ -1353,7 +1351,6 @@ class bits(list):
         """
         Overloaded operator for concatenating bit vectors.
 
-        >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1, 1])) + bits(map(bit, [0, 0]))
         >>> [b.value for b in bs]
         [1, 1, 0, 0]
@@ -1366,7 +1363,6 @@ class bits(list):
         """
         Overloaded operator for concatenating bit vectors.
 
-        >>> bit.circuit(circuit())
         >>> bs = bits(map(bit, [1, 1])) ** bits(map(bit, [0, 0]))
         >>> [b.value for b in bs]
         [1, 1, 0, 0]
@@ -1383,6 +1379,7 @@ def constants(l: Sequence[int]) -> bits:
     >>> ys = outputs(xs.not_())
     >>> int(ys)
     7
+    >>> _ = bit.circuit() # Remove designated circuit.
     """
     return bits(map(constant, l))
 
@@ -1412,6 +1409,7 @@ def outputs(l: Sequence[int]) -> bits:
     >>> ys = outputs(xs.not_())
     >>> [y.value for y in ys]
     [1, 1, 1]
+    >>> _ = bit.circuit() # Remove designated circuit.
     """
     return bits(map(output, l))
 
