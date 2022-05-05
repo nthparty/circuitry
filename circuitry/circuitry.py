@@ -71,7 +71,9 @@ class bit:
         designate an associate gate object.
         """
         self.value = value
-        self.gate = bit._circuit.gate() if gate_ is None else gate_
+
+        if bit._circuit is not None:
+            self.gate = bit._circuit.gate() if gate_ is None else gate_
 
     @staticmethod
     def circuit(circuit_: Optional[circuit] = None) -> Optional[circuit]:
@@ -158,7 +160,7 @@ class bit:
         return bit
 
     @staticmethod
-    def gate(operation: op, igs: Sequence[gate]) -> gate:
+    def gate(operation: op, igs: Sequence[gate]) -> Optional[gate]:
         """
         Add a gate to the designated circuit object that is under construction. This
         method is primarily provided to aid in the implementation of custom hooks
@@ -174,7 +176,11 @@ class bit:
         >>> b.value == bit.circuit().evaluate([0, 0])[0]
         True
         """
-        return bit._circuit.gate(operation, igs)
+        return (
+            bit._circuit.gate(operation, igs) \
+            if bit._circuit is not None else \
+            None
+        )
 
     def __int__(self: bit) -> int:
         """
@@ -668,7 +674,9 @@ class constant(bit):
     def __init__(self: bit, value: int):
         """Instantiate an instance that is designated as a variable input."""
         self.value = value
-        self.gate = bit._circuit.gate(op.nf_ if self.value == 0 else op.nt_)
+
+        if bit._circuit is not None:
+            self.gate = bit._circuit.gate(op.nf_ if self.value == 0 else op.nt_)
 
 class input(bit):
     """
@@ -682,7 +690,9 @@ class input(bit):
     def __init__(self: bit, value: int):
         """Instantiate an instance that is designated as a variable input."""
         self.value = value
-        self.gate = bit._circuit.gate(op.id_, is_input=True)
+
+        if bit._circuit is not None:
+            self.gate = bit._circuit.gate(op.id_, is_input=True)
 
 class input_one(input):
     """
@@ -709,12 +719,15 @@ class output(bit):
         """
         Instantiate a bit that is designated as an output.
         """
-        # Check if bit is ready as final output or whether there are others
-        # dependent on it.
-        if len(b.gate.outputs) > 0:
-            b = ~(~b)  # Preserve the bit by copying it to a new wire.
         self.value = b.value
-        self.gate = bit._circuit.gate(op.id_, [b.gate], is_output=True)
+
+        if bit._circuit is not None:
+            # Check if bit is ready as final output or whether there are others
+            # dependent on it.
+            if len(b.gate.outputs) > 0:
+                b = ~(~b)  # Preserve the bit by copying it to a new wire.
+
+            self.gate = bit._circuit.gate(op.id_, [b.gate], is_output=True)
 
 class bits_type(int): # pylint: disable=R0903
     """
