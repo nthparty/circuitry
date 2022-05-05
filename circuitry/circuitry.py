@@ -135,11 +135,28 @@ class bit:
         >>> b = output(bit.operation(op.and_, input(1), input(1)))
         >>> b.value == bit.circuit().evaluate([1, 1])[0]
         True
+
+        Arguments that are instances of :obj:`output` are not permitted.
+
+        >>> bit.circuit(circuit())
+        >>> b0 = output(input(0).not_())
+        >>> b1 = b0.not_()
+        Traceback (most recent call last):
+          ...
+        TypeError: cannot supply an output as an argument to an operation
+        >>> _ = bit.circuit() # Remove designated circuit.
         """
         # Ensure second argument is a `bit`.
         args = list(args)
         if len(args) == 2:
             args[1] = constant(args[1]) if isinstance(args[1], int) else args[1]
+
+        # Ensure none of the arguments are outputs.
+        for a in args:
+            if isinstance(a, output):
+                raise TypeError(
+                    "cannot supply an output as an argument to an operation"
+                )
 
         # Compute the value of the result of the operation on the arguments.
         v = o(*[a.value for a in args])
@@ -203,6 +220,20 @@ class bit:
         1
         """
         return self.value
+
+    def id_(self: bit) -> bit:
+        """
+        Operation for an individual :obj:`bit` instance.
+
+        >>> results = []
+        >>> for x in [0, 1]:
+        ...     bit.circuit(circuit())
+        ...     b = output(input(x).id_())
+        ...     results.append(int(b) == bit.circuit().evaluate([x])[0])
+        >>> all(results)
+        True
+        """
+        return bit.operation(op.id_, self)
 
     def not_(self: bit) -> bit:
         """
@@ -674,7 +705,7 @@ class constant(bit):
     >>> _ = output(constant(0))
     >>> c = bit.circuit()
     >>> c.count()
-    1
+    2
     >>> c.evaluate([])
     [0]
     """
@@ -715,11 +746,36 @@ class output(bit):
     Instance of a :obj:`bit` that is designated as an output.
 
     >>> bit.circuit(circuit())
-    >>> b0 = output(input(1).not_())
+    >>> b0 = input(0).not_()
     >>> b1 = output(b0.not_())
-    >>> b2 = output(b0)
+    >>> [b0.value, b1.value]
+    [1, 0]
+    >>> bit.circuit().evaluate([1])
+    [1]
+
+    It is not possible to apply an operation to an :obj:`output` instance. Any
+    attempt to do so raises an exception (see implementation of :obj:`bit.operation`
+    for more details).
+
+    >>> bit.circuit(circuit())
+    >>> b0 = output(input(0).not_())
+    >>> b1 = b0.not_()
+    Traceback (most recent call last):
+      ...
+    TypeError: cannot supply an output as an argument to an operation
+
+    If the value represented by a :obj:`bit` instance must be both an argument
+    into another operation and an output, an :obj:`bit.id_` operation can be
+    introduced.
+
+    >>> bit.circuit(circuit())
+    >>> b0 = input(1).not_()
+    >>> b1 = output(b0.id_())
+    >>> b2 = output(b0.not_())
     >>> [b0.value, b1.value, b2.value]
-    [0, 1, 0]
+    [0, 0, 1]
+    >>> bit.circuit().evaluate([0])
+    [1, 0]
     """
     def __init__(self: bit, b: bit):
         """
@@ -728,11 +784,6 @@ class output(bit):
         self.value = b.value
 
         if bit._circuit is not None:
-            # Check if bit is ready as final output or whether there are others
-            # dependent on it.
-            if len(b.gate.outputs) > 0:
-                b = ~(~b)  # Preserve the bit by copying it to a new wire.
-
             self.gate = bit._circuit.gate(op.id_, [b.gate], is_output=True)
 
 class bits_type(int): # pylint: disable=R0903
