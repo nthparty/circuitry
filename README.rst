@@ -54,14 +54,14 @@ All unit tests are executed and their coverage is measured when using `pytest <h
     python -m pip install pytest pytest-cov
     python -m pytest
 
-Alternatively, all unit tests are included in the module itself and can be executed using `doctest <https://docs.python.org/3/library/doctest.html>`_::
+The subset of the unit tests included in the module itself can be executed using `doctest <https://docs.python.org/3/library/doctest.html>`_::
 
     python circuitry/circuitry.py -v
 
 Style conventions are enforced using `Pylint <https://www.pylint.org/>`_::
 
     python -m pip install pylint
-    python -m pylint circuitry
+    python -m pylint circuitry ./test/test_circuitry.py
 
 Contributions
 -------------
