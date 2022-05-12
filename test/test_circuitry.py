@@ -23,7 +23,7 @@ def equals_iterative(xs: bits(8), ys: bits(8)) -> bit:
     using logical and arithmetic operations.
     """
     z = 1
-    for i in range(len(xs)):
+    for i in range(8):
         z = z & equal(xs[i], ys[i])
     return z
 
@@ -44,8 +44,8 @@ class Test_circuitry(TestCase):
         """
         for (x, y) in product(*[[0, 1]] * 2):
             self.assertEqual(
-                equal.circuit.evaluate([x, y]),
-                [int(x == y)]
+                equal.circuit.evaluate([[x], [y]]),
+                [[int(x == y)]]
             )
 
     def test_example_equals_iterative(self):
@@ -56,8 +56,8 @@ class Test_circuitry(TestCase):
         vectors = product(*[[0, 1]] * 8)
         for (xs, ys) in product(vectors, vectors):
             self.assertEqual(
-                equals_iterative.circuit.evaluate(xs + ys),
-                [int(xs == ys)]
+                equals_iterative.circuit.evaluate([xs, ys]),
+                [[int(xs == ys)]]
             )
 
     def test_example_equals_functional(self):
@@ -68,6 +68,6 @@ class Test_circuitry(TestCase):
         vectors = product(*[[0, 1]] * 8)
         for (xs, ys) in product(vectors, vectors):
             self.assertEqual(
-                equals_functional.circuit.evaluate(xs + ys),
-                [int(xs == ys)]
+                equals_functional.circuit.evaluate([xs, ys]),
+                [[int(xs == ys)]]
             )

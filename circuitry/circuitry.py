@@ -5,6 +5,7 @@ of logic circuits and synthesizing circuits from those definitions.
 from __future__ import annotations
 from typing import Sequence, Union, Optional, Callable
 import doctest
+from collections.abc import Iterable
 from parts import parts
 from circuit import op, gate, circuit, signature
 
@@ -1481,9 +1482,8 @@ def synthesize(f: Callable) -> Callable:
     The circuit is introduced as an attribute of the function and can
     be evaluated on :obj:`bits` objects.
 
-    >>> xys = [bits([x, y]) for x in (0, 1) for y in (0, 1)]
-    >>> [equal.circuit.evaluate(xy) for xy in xys]
-    [[1], [0], [0], [1]]
+    >>> [equal.circuit.evaluate([[x], [y]]) for x in (0, 1) for y in (0, 1)]
+    [[[1]], [[0]], [[0]], [[1]]]
 
     This decorator can also be applied to functions that are defined
     explicitly as operating on bit vectors (in the form of :obj:`bits`
@@ -1492,48 +1492,95 @@ def synthesize(f: Callable) -> Callable:
     >>> @synthesize
     ... def conjunction(xy: bits(2)) -> bits(2):
     ...     return (xy[0], xy[0] & xy[1])
-    >>> xys = [bits([x, y]) for x in (0, 1) for y in (0, 1)]
-    >>> [conjunction.circuit.evaluate(xy) for xy in xys]
-    [[0, 0], [0, 0], [1, 0], [1, 1]]
+    >>> [conjunction.circuit.evaluate([[x, y]]) for x in (0, 1) for y in (0, 1)]
+    [[[0, 0]], [[0, 0]], [[1, 0]], [[1, 1]]]
 
-    Functions to which this decorator is applied must have type annotations.
+    If the decorated function returns multiple outputs, the output type annotation
+    should indicate this.
+
+    >>> @synthesize
+    ... def swap(x: bit, y: bit) -> (bit, bit):
+    ...     return (y, x)
+    >>> [swap.circuit.evaluate([[x], [y]]) for x in (0, 1) for y in (0, 1)]
+    [[[0], [0]], [[1], [0]], [[0], [1]], [[1], [1]]]
+
+    Functions to which this decorator is applied must have type annotations
+    that specify the lengths of the input and output bit vectors.
 
     >>> @synthesize
     ... def equal(x, y):
     ...     return x & y
     Traceback (most recent call last):
       ...
+    RuntimeError: type annotation of decorated function is missing or malformed
+
+    If an exception occurs during the execution (for the purpose of circuit synthesis)
+    of the decorated function, then synthesis will fail.
+
+    >>> @synthesize
+    ... def equal(x: bit, y: bit) -> bit:
+    ...     return 1 / 0 # Run-time error.
+    Traceback (most recent call last):
+      ...
     RuntimeError: automated circuit synthesis failed
     """
-    # Functions for determining types/signature from
-    # the type annotation of the decorated function.
-    type_in = lambda a: input(0) if a is bit else inputs([0] * a)
-    type_out = lambda a: output if a is bit else outputs
-
     # For forward-compatibility with PEP 563.
     eval_ = lambda a: eval(a) if isinstance(a, str) else a # pylint: disable=W0123
 
+    # Functions for determining the input value(s) and output wrappers from a type
+    # annotation of the decorated function.
+    input_from_annotation = lambda a: input(0) if a is bit else inputs([0] * a)
+    output_from_annotation = lambda a: output if a is bit else outputs
+
+    # Functions for determining the bit vector length from a type annotation
+    # of the decorated function.
+    bit_vector_length_from_annotation = lambda a: 1 if a is bit else a
+
+    # Designate the circuit to be synthesized.
+    bit.circuit(circuit())
+
     try:
-        # Construct the circuit and add it to the function as an attribute.
-        bit.circuit(circuit())
-        args_in = {
-            k: type_in(eval_(a))
+        # Construct the input bit vector(s) and output wrapper based on the type
+        # annotation.
+        inputs_ = {
+            k: input_from_annotation(eval_(a))
             for (k, a) in f.__annotations__.items() if k != 'return'
         }
-        type_out(eval_(f.__annotations__['return']))(f(**args_in))
+        outputs_ = output_from_annotation(eval_(f.__annotations__['return']))
+
+        # Construct a signature to the circuit based on the type annotation of the
+        # decorated function.
+
+        annotation_out = eval_(f.__annotations__['return'])
+        signature_ = signature(
+            [
+                bit_vector_length_from_annotation(eval_(a))
+                for (k, a) in f.__annotations__.items() if k != 'return'
+            ],
+            [
+                bit_vector_length_from_annotation(a)
+                for a in (
+                    annotation_out \
+                    if isinstance(annotation_out, Iterable) else \
+                    [annotation_out]
+                )
+            ]
+        )
+    except Exception as e:
+        raise RuntimeError(
+            'type annotation of decorated function is missing or malformed'
+        ) from e
+
+    # Synthesize the circuit by evaluating the function, add it to the function as an
+    # attribute, and give it a signature.
+    try:
+        outputs_(f(**inputs_))
         f.circuit = bit.circuit()
+        f.circuit.signature = signature_
+    except Exception as e:
+        raise RuntimeError('automated circuit synthesis failed') from e
 
-        # Assign a signature to the circuit.
-        #size = lambda a: 1 if a is bit else a.length
-        #f.circuit.signature = signature(
-        #    [size(a) for (k, a) in f.__annotations__.items() if k != 'return'],
-        #    [size(a) for (k, a) in f.__annotations__.items() if k == 'return']
-        #)
-    except:
-        raise RuntimeError('automated circuit synthesis failed') from None
-
-    # Return the original function.
-    return f
+    return f # Return the original function.
 
 if __name__ == "__main__":
     doctest.testmod() # pragma: no cover
