@@ -1465,7 +1465,7 @@ def outputs(l: Sequence[int]) -> bits:
     """
     return bits(map(output, l))
 
-def synthesize(f: Callable) -> Callable:
+def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
     """
     Decorator for automatically synthesizing a circuit from a function that
     takes only :obj:`bit` and/or :obj:`bits` objects as its arguments and
@@ -1523,46 +1523,109 @@ def synthesize(f: Callable) -> Callable:
     Traceback (most recent call last):
       ...
     RuntimeError: automated circuit synthesis failed
+
+    To support programmatic synthesis (*e.g.*, of circuit variants of many different
+    sizes from the same function definition), this function can accept input and output
+    type information via two optional parameters.
+
+    >>> def conjunction(xy):
+    ...     return (xy[0], xy[0] & xy[1])
+    >>> c = synthesize(conjunction, {'xy': bits(2)}, bits(2))
+    >>> [c.evaluate([[x, y]]) for x in (0, 1) for y in (0, 1)]
+    [[[0, 0]], [[0, 0]], [[1, 0]], [[1, 1]]]
+
+    When synthesizing programmatically, the input type information must be supplied
+    either (1) as a dictionary that maps input type parameter names to types or (2)
+    as a tuple or list (the length of which matches the number of parameters). The
+    output type information must follow the same conventions as an output type
+    annotation.
+
+    >>> def equal(x, y):
+    ...     return (x & y) | ((1 - x) & (1 - y))
+    >>> c = synthesize(equal, (bit, bit), bit)
+    >>> [c.evaluate([[x], [y]]) for x in (0, 1) for y in (0, 1)]
+    [[[1]], [[0]], [[0]], [[1]]]
+
+    If the supplied type information does not have the correct type or is incomplete,
+    an exception is raised.
+
+    >>> c = synthesize(equal, (bit, bit))
+    Traceback (most recent call last):
+      ...
+    ValueError: must include input and output types when supplying type information via parameters
+    >>> c = synthesize(equal, bits(2), bit)
+    Traceback (most recent call last):
+      ...
+    TypeError: input type parameter must be a dictionary, tuple, or list
+    >>> c = synthesize(equal, (bit, bit), 'bit')
+    Traceback (most recent call last):
+      ...
+    TypeError: output type parameter must be specified using bit or bits object
     """
     # For forward-compatibility with PEP 563.
     eval_ = lambda a: eval(a) if isinstance(a, str) else a # pylint: disable=W0123
 
-    # Functions for determining the input value(s) and output wrappers from a type
-    # annotation of the decorated function.
-    input_from_annotation = lambda a: input(0) if a is bit else inputs([0] * a)
-    output_from_annotation = lambda a: output if a is bit else outputs
+    # Functions for determining the input value(s) and output value converters from
+    # a type annotation (of a decorated function) or an explicitly supplied type
+    # parameter.
+    in_value_for_signature = lambda a: input(0) if a is bit else inputs([0] * a)
+    out_value_for_signature = lambda a: output if a is bit else outputs
 
     # Functions for determining the bit vector length from a type annotation
     # of the decorated function.
     bit_vector_length_from_annotation = lambda a: 1 if a is bit else a
 
+    # If the type information is supplied via parameters, then both input and output
+    # types must be supplied.
+    if (in_type is None and out_type is not None) or (in_type is not None and out_type is None):
+        raise ValueError(
+            "must include input and output types when supplying type information via parameters"
+        )
+
+    # If the type information is supplied via parameters, then both input and output
+    # types must be supplied.
+    if (in_type is not None) and (out_type is not None):
+        if not isinstance(in_type, (dict, tuple, list)):
+            raise TypeError("input type parameter must be a dictionary, tuple, or list")
+        if (not out_type is bit) and (not isinstance(out_type, bits_type)):
+            raise TypeError("output type parameter must be specified using bit or bits object")
+
+    # If the type information is supplied via parameters, ensure that the input type
+    # information is converted into a dictionary that maps the function's input variables
+    # to the corresponding type information (*i.e.*, if the user supplied a tuple or list
+    # and not a dictionary for the input type information).
+    if isinstance(in_type, (list, tuple)) and (out_type is not None):
+        in_type = dict(zip(function.__code__.co_varnames, in_type))
+
     # Designate the circuit to be synthesized.
     bit.circuit(circuit())
 
     try:
-        # Construct the input bit vector(s) and output wrapper based on the type
-        # annotation.
-        inputs_ = {
-            k: input_from_annotation(eval_(a))
-            for (k, a) in f.__annotations__.items() if k != 'return'
-        }
-        outputs_ = output_from_annotation(eval_(f.__annotations__['return']))
+        # Construct the input bit vector(s) and output wrapper based on the function's
+        # type annotation or type information supplied via the parameters.
+        in_type_ready = (
+            {k: eval_(a) for (k, a) in function.__annotations__.items() if k != 'return'} \
+            if in_type is None else \
+            in_type
+        )
+        out_type_ready = (
+            eval_(function.__annotations__['return']) \
+            if out_type is None else \
+            out_type
+        )
+        in_values = {k: in_value_for_signature(a) for (k, a) in in_type_ready.items()}
+        out_values = out_value_for_signature(out_type_ready)
 
         # Construct a signature to the circuit based on the type annotation of the
         # decorated function.
-
-        annotation_out = eval_(f.__annotations__['return'])
         signature_ = signature(
-            [
-                bit_vector_length_from_annotation(eval_(a))
-                for (k, a) in f.__annotations__.items() if k != 'return'
-            ],
+            [bit_vector_length_from_annotation(a) for a in in_type_ready.values()],
             [
                 bit_vector_length_from_annotation(a)
                 for a in (
-                    annotation_out \
-                    if isinstance(annotation_out, Iterable) else \
-                    [annotation_out]
+                    out_type_ready \
+                    if isinstance(out_type_ready, Iterable) else \
+                    [out_type_ready]
                 )
             ]
         )
@@ -1572,15 +1635,18 @@ def synthesize(f: Callable) -> Callable:
         ) from e
 
     # Synthesize the circuit by evaluating the function, add it to the function as an
-    # attribute, and give it a signature.
+    # attribute, and give the circuit its signature.
     try:
-        outputs_(f(**inputs_))
-        f.circuit = bit.circuit()
-        f.circuit.signature = signature_
+        out_values(function(**in_values))
+        function.circuit = bit.circuit()
+        function.circuit.signature = signature_
     except Exception as e:
         raise RuntimeError('automated circuit synthesis failed') from e
 
-    return f # Return the original function.
+    # Return the original function if the function is being used as a decorator, or
+    # the circuit if the function is being used programmatically (*i.e.*, with type
+    # information supplied via its parameters).
+    return function if (in_type is None and out_type is None) else function.circuit
 
 if __name__ == "__main__":
     doctest.testmod() # pragma: no cover
