@@ -1726,15 +1726,17 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
     # attribute, and give the circuit its signature.
     try:
         out_values(function(**in_values))
-        function.circuit = bit.circuit()
-        function.circuit.signature = signature_
+        function_circuit = bit.circuit()
+        function_circuit.signature = signature_
+        if type_supplied_via_annotation:
+            function.circuit = function_circuit
     except Exception as e:
         raise RuntimeError('automated circuit synthesis failed') from e
 
     # Return the original function if the function is being used as a decorator, or
     # the circuit if the function is being used programmatically (*i.e.*, with type
     # information supplied via its parameters).
-    return function if type_supplied_via_annotation else function.circuit
+    return function if type_supplied_via_annotation else function_circuit
 
 if __name__ == "__main__":
     doctest.testmod() # pragma: no cover
