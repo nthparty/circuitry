@@ -159,8 +159,9 @@ class Test_circuitry(TestCase):
 
     def test_example_sha256(self):
         """
-        Tests synthesis of the circuit corresponding to the SHA-256
-        implementation.
+        Tests the circuit corresponding to an implementation of SHA-256 that was
+        synthesized directly using the synthesis decorator for a specific length
+        of input to the hash function.
         """
         # Perform a few tests for each length of input.
         for length in range(1, 56, 3):
@@ -180,7 +181,50 @@ class Test_circuitry(TestCase):
                     ]
                 ])
 
-                # Compute circuit evaluation result to built-in SHA-256 implementation.
+                # Compute circuit evaluation result to that of the built-in SHA-256
+                # implementation.
+                self.assertEqual(
+                    bitlist(output_bits).hex(),
+                    hashlib.sha256(input_bytes).hexdigest()
+                )
+
+    def test_example_sha256_resynthesis_per_input_length(self):
+        """
+        Tests multiple circuit variants corresponding to SHA-256, each synthesized
+        programmatically for one of a collection of specific input length ranges.
+
+        Synthesis of different SHA-256 circuits for different input lengths is
+        necessary because unlike a general-purpose programming lanaguage with
+        support fo iteration constructs (such as loops), circuits are fixed and
+        can only operate on one length of input. Due to padding requirements, input
+        lengths for SHA-256 come in exact multiples of 512; therefore, a distinct
+        circuit must be synthesized for each multiple of 512.
+        """
+        # Perform a few tests for each length of input.
+        for multiple in range(2, 6):
+            # Synthesize the circuit for this particular length of input.
+            c = synthesize(sha256, [bits(512 * multiple)], [bits(256)])
+
+            # Run a test for the two boundary values of current input length range.
+            length_minimum = (64 * (multiple - 1)) - 8
+            for length in [length_minimum, length_minimum + 63]:
+                # Assemble input and padding.
+                input_bytes = secrets.token_bytes(length)
+                input_padding = \
+                    bytes([128] + ([0] * ((64 * multiple) - 9 - length))) + \
+                    int(8 * length).to_bytes(8, 'big')
+
+                # Evaluate the synthesized circuit on the input bit vector.
+                [output_bits] = c.evaluate([
+                    [
+                        b
+                        for byte in (input_bytes + input_padding)
+                        for b in bitlist(byte, 8)
+                    ]
+                ])
+
+                # Compute circuit evaluation result to that of the built-in SHA-256
+                # implementation.
                 self.assertEqual(
                     bitlist(output_bits).hex(),
                     hashlib.sha256(input_bytes).hexdigest()
