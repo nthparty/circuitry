@@ -13,8 +13,8 @@ class bit:
     """
     Class for representing an abstract bit. Such a bit can be interpreted
     concretely as a value, but it is also used to keep track of relationships
-    between operators and to represent the wires within a circuit built up
-    out of those operators.
+    between operators and to represent the individual wires within a circuit
+    that is built up from gates that correspond to those operators.
 
     It is first necessary to introduce a new circuit object and to designate
     this object as the circuit that is being constructed.
@@ -23,42 +23,35 @@ class bit:
     >>> bit.circuit(c)
 
     Subsequently, it is possible to instantiate subclasses of :obj:`bit` that
-    service specific roles (such as :obj:`input`, which represents an input
-    value into the overall circuit being constructed). An operator method such
-    as :obj:`bit.and_` can be used to operate on :obj:`bit` instances (and, at
-    the same time to introduce a gate into the circuit).
+    serve specific roles (such as :obj:`input`, which represents an input value
+    into the overall circuit being constructed). An operator method such as
+    :obj:`bit.and_` can be used to operate on :obj:`bit` instances (and, at the
+    same time to introduce a gate into the circuit).
 
     >>> b = output(input(1).and_(input(1)))
 
     At this point, constructed circuit can be retrieved and evaluated on a
-    vector of bits.
+    vector of bit values (wherein each value is represented using the integer
+    ``0`` or the integer ``1``).
 
     >>> b.value == bit.circuit().evaluate([1, 1])[0]
     True
 
-    It is possible to add custom hook functions that are applied when an operator
-    is introduced. If a hook function returns ``None``, then the default instance
-    of :obj:`bit` is returned when an operation is applied.
+    It is possible to add custom hook functions that are applied whenever an
+    operator is introduced using the :obj:`bit.hook_operation` method.
 
-    >>> bit.hook_operation(lambda o, v, *args: None)
-    >>> bit.circuit(circuit())
-    >>> b = output(input(1).and_(input(1)))
-    >>> b.value == bit.circuit().evaluate([1, 1])[0]
-    True
-
-    More complex hook functions can also be introduced.
-
-    >>> def make_hook(bit_):
+    >>> def make_hook_that_prints_created_gates(bit_):
     ...     def hook(o, v, *args):
+    ...         print('created gate with operation "' + o.name() + '"')
     ...         return bit_.constructor(*args)(v, bit_.gate(o, [a.gate for a in args]))
     ...     return hook
-    >>> bit.hook_operation(make_hook(bit))
+    >>> bit.hook_operation(make_hook_that_prints_created_gates(bit))
     >>> bit.circuit(circuit())
-    >>> b = output(input(0).and_(input(1)))
-    >>> b.value == bit.circuit().evaluate([0, 1])[0] == 0
-    True
+    >>> b = output(input(0).and_(input(1)).not_())
+    created gate with operation "and"
+    created gate with operation "not"
 
-    Note that a hook must be removed in order to avoid its effects when subsequent
+    Note that a hook must be removed if its effects are not desired when subsequent
     circuits are constructed.
 
     >>> bit.hook_operation()
@@ -115,15 +108,33 @@ class bit:
         Assign a function that is invoked whenever the :obj:`bit.operation` method
         is used to create a new instance of :obj:`bit`.
 
-        >>> def make_hook(bit_):
+        >>> def make_hook_that_prints_created_gates(bit_):
         ...     def hook(o, v, *args):
+        ...         print('created gate with operation "' + o.name() + '"')
         ...         return bit_.constructor(*args)(v, bit_.gate(o, [a.gate for a in args]))
         ...     return hook
-        >>> bit.hook_operation(make_hook(bit))
+        >>> bit.hook_operation(make_hook_that_prints_created_gates(bit))
         >>> bit.circuit(circuit())
-        >>> b = output(input(0).and_(input(0)))
+        >>> b = output(input(0).and_(input(1)).not_())
+        created gate with operation "and"
+        created gate with operation "not"
         >>> b.value == bit.circuit().evaluate([0, 0])[0]
         True
+
+        If a hook function returns ``None``, then the default instance of :obj:`bit`
+        is returned when an operation is applied.
+
+        >>> bit.hook_operation(lambda o, v, *args: None)
+        >>> bit.circuit(circuit())
+        >>> b = output(input(1).and_(input(1)))
+        >>> b.value == bit.circuit().evaluate([1, 1])[0]
+        True
+
+        It is only possible to assign one hook function at a time. A hook must
+        be removed if its effects are not desired when subsequent circuits are
+        constructed.
+
+        >>> bit.hook_operation()
         """
         bit._hook_operation = hook
 
@@ -131,6 +142,13 @@ class bit:
     def operation(o: Callable, *args) -> bit:
         """
         Apply the supplied operation method to zero or more :obj:`bit` arguments.
+        Gate operations are represented using instances of the
+        :obj:`~logical.logical.logical` class exported by the
+        `logical <https://pypi.org/project/logical/>`_ library. This module
+        indirectly imports the :obj:`~logical.logical.logical` class via the
+        :obj:`~circuit.circuit.op` synonym defined in the
+        `circuit <https://pypi.org/project/circuit/>`_ library, enabling the
+        more concise syntax used in the example below.
 
         >>> bit.circuit(circuit())
         >>> b = output(bit.operation(op.and_, input(1), input(1)))
@@ -179,23 +197,19 @@ class bit:
         methods. It is provided primarily to aid in the implementation of custom
         hooks that can be set using the :obj:`bit.hook_operation` method.
         """
-        # # The inference code below is not currently in use.
-        # if isinstance(b1, input_one) and isinstance(b2, input_one):
-        #     return input_one
-        # elif isinstance(b1, input_two) and isinstance(b2, input_two):
-        #     return input_two
-        # elif isinstance(b1, (input_one, input_two)) and b2 is None:
-        #     return type(b1)
-        # else:
-        #     return bit
         return bit
 
     @staticmethod
     def gate(operation: op, igs: Sequence[gate]) -> Optional[gate]:
         """
-        Add a gate to the designated circuit object that is under construction. This
-        method is primarily provided to aid in the implementation of custom hooks
-        that can be set using the :obj:`bit.hook_operation` method.
+        Add a gate to the designated circuit object that is under construction.
+        This method is primarily provided to aid in the implementation of custom
+        hooks that can be set using the :obj:`bit.hook_operation` method.
+        Gate operations are represented using instances of the
+        :obj:`~logical.logical.logical` class exported by the
+        `logical <https://pypi.org/project/logical/>`_ library (which is indirectly
+        imported into this module as the :obj:`~circuit.circuit.op` synonym
+        from the `circuit <https://pypi.org/project/circuit/>`_ library).
 
         >>> def make_hook(bit_):
         ...     def hook(o, v, *args):
@@ -215,7 +229,8 @@ class bit:
 
     def __int__(self: bit) -> int:
         """
-        Convert this :obj:`bit` instance into its integer representation.
+        Convert this :obj:`bit` instance into the integer representation of
+        its value.
 
         >>> int(bit(1))
         1
@@ -224,7 +239,7 @@ class bit:
 
     def id_(self: bit) -> bit:
         """
-        Operation for an individual :obj:`bit` instance.
+        Logical operation for an individual :obj:`bit` instance.
 
         >>> results = []
         >>> for x in [0, 1]:
@@ -238,7 +253,7 @@ class bit:
 
     def not_(self: bit) -> bit:
         """
-        Operation for an individual :obj:`bit` instance.
+        Logical operation for an individual :obj:`bit` instance.
 
         >>> results = []
         >>> for x in [0, 1]:
@@ -252,7 +267,7 @@ class bit:
 
     def __invert__(self: bit) -> bit:
         """
-        Operation for an individual :obj:`bit` instance.
+        Logical operation for an individual :obj:`bit` instance.
 
         >>> results = []
         >>> for x in [0, 1]:
@@ -266,7 +281,12 @@ class bit:
 
     def __rsub__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Arithmetic operation involving an individual :obj:`bit` instance that
+        is often used to represent the logical negation operation. This method
+        is provided primarily as a convenience enabling use of the syntax
+        ``1 - b`` to represent logical negation of a bit value ``b``; it
+        **does not enable subtraction of one** :obj:`bit` **instance from
+        another**.
 
         >>> results = []
         >>> for x in [0, 1]:
@@ -286,7 +306,7 @@ class bit:
 
     def and_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -300,7 +320,7 @@ class bit:
 
     def __and__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -314,7 +334,7 @@ class bit:
 
     def __rand__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> b = 0 & constant(1)
         >>> b.value
@@ -324,7 +344,7 @@ class bit:
 
     def nimp(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -338,7 +358,7 @@ class bit:
 
     def nimp_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -352,7 +372,7 @@ class bit:
 
     def __gt__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -366,7 +386,7 @@ class bit:
 
     def nif(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -380,7 +400,7 @@ class bit:
 
     def nif_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -394,7 +414,7 @@ class bit:
 
     def __lt__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -408,7 +428,7 @@ class bit:
 
     def xor(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -422,7 +442,7 @@ class bit:
 
     def xor_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -436,7 +456,7 @@ class bit:
 
     def __xor__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -450,7 +470,7 @@ class bit:
 
     def __rxor__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> b =  1 ^ constant(0)
         >>> b.value
@@ -460,7 +480,7 @@ class bit:
 
     def or_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -474,7 +494,7 @@ class bit:
 
     def __or__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -488,7 +508,7 @@ class bit:
 
     def __ror__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> b = 1 | constant(0)
         >>> b.value
@@ -498,7 +518,7 @@ class bit:
 
     def nor(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -512,7 +532,7 @@ class bit:
 
     def nor_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -526,7 +546,7 @@ class bit:
 
     def __mod__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -540,7 +560,7 @@ class bit:
 
     def xnor(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -554,7 +574,7 @@ class bit:
 
     def xnor_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -568,7 +588,7 @@ class bit:
 
     def __eq__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -582,7 +602,7 @@ class bit:
 
     def if_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -596,7 +616,7 @@ class bit:
 
     def __ge__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -610,7 +630,7 @@ class bit:
 
     def imp(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -624,7 +644,7 @@ class bit:
 
     def imp_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -638,7 +658,7 @@ class bit:
 
     def __le__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -652,7 +672,7 @@ class bit:
 
     def nand(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -666,7 +686,7 @@ class bit:
 
     def nand_(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -680,7 +700,7 @@ class bit:
 
     def __matmul__(self: bit, other: bit) -> bit:
         """
-        Operation for individual :obj:`bit` instances.
+        Logical operation for individual :obj:`bit` instances.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -699,8 +719,9 @@ class constant(bit):
     >>> constant(1).value
     1
 
-    When constructing a circuit, a gate with a nullary operator is added to
-    the circuit.
+    When a :obj:`constant` instance is introduced during circuit construction,
+    a gate with a nullary operator (*i.e.*, one of the two appearing in
+    :obj:`~logical.logical.logical.nullary`) is added to the circuit.
 
     >>> bit.circuit(circuit())
     >>> _ = output(constant(0))
@@ -711,7 +732,7 @@ class constant(bit):
     [0]
     """
     def __init__(self: bit, value: int):
-        """Instantiate an instance that is designated as a variable input."""
+        """Instantiate an instance that is designated as a constant input."""
         self.value = value
 
         if bit._circuit is not None:
@@ -719,7 +740,10 @@ class constant(bit):
 
 class input(bit):
     """
-    Instance of a :obj:`bit` that is designated as a variable input.
+    Instance of a :obj:`bit` that is designated as a variable input. When an
+    :obj:`input` instance is introduced during circuit construction, a gate
+    is added to the circuit that is explicitly marked as an input gate (as
+    defined in the `circuit <https://pypi.org/project/circuit/>`_ library).
 
     >>> b0 = output(input(1).not_())
     >>> b0.value
@@ -744,7 +768,10 @@ class input_two(input):
 
 class output(bit):
     """
-    Instance of a :obj:`bit` that is designated as an output.
+    Instance of a :obj:`bit` that is designated as an output. When an
+    :obj:`output` instance is introduced during circuit construction, a gate is
+    added to the circuit that is explicitly marked as an output gate (as defined
+    in the `circuit <https://pypi.org/project/circuit/>`_ library).
 
     >>> bit.circuit(circuit())
     >>> b0 = input(0).not_()
@@ -790,8 +817,9 @@ class output(bit):
 class bits_type(int): # pylint: disable=R0903
     """
     Class for representing an input or output type of a function decorated
-    for automated synthesis. This class is used within the :obj:`bits`
-    constructor implementation.
+    for automated synthesis. This class is employed internally within the
+    :obj:`bits` constructor implementation and is not intended to be used
+    directly. It is not exported.
     """
 
 class bits(list):
@@ -814,7 +842,8 @@ class bits(list):
     @staticmethod
     def from_byte(byte_: int, constructor=bit) -> bits:
         """
-        Convert a byte into a corresponding bit vector.
+        Convert an integer representing a single byte into a corresponding bit
+        vector.
 
         >>> [b.value for b in bits.from_byte(255)]
         [1, 1, 1, 1, 1, 1, 1, 1]
@@ -869,7 +898,7 @@ class bits(list):
 
     def not_(self: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for x in [0, 1]:
@@ -886,7 +915,7 @@ class bits(list):
 
     def __invert__(self: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for x in [0, 1]:
@@ -903,7 +932,7 @@ class bits(list):
 
     def and_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -920,7 +949,7 @@ class bits(list):
 
     def __and__(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -937,7 +966,7 @@ class bits(list):
 
     def nimp(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -954,7 +983,7 @@ class bits(list):
 
     def nimp_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -971,7 +1000,7 @@ class bits(list):
 
     def __gt__(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -988,7 +1017,7 @@ class bits(list):
 
     def nif(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1005,7 +1034,7 @@ class bits(list):
 
     def nif_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1022,7 +1051,7 @@ class bits(list):
 
     def __lt__(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1039,7 +1068,7 @@ class bits(list):
 
     def xor(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1056,7 +1085,7 @@ class bits(list):
 
     def xor_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1073,7 +1102,7 @@ class bits(list):
 
     def __xor__(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1090,7 +1119,7 @@ class bits(list):
 
     def or_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1107,7 +1136,7 @@ class bits(list):
 
     def __or__(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1124,7 +1153,7 @@ class bits(list):
 
     def nor(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1141,7 +1170,7 @@ class bits(list):
 
     def nor_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1158,7 +1187,7 @@ class bits(list):
 
     def __mod__(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1175,7 +1204,7 @@ class bits(list):
 
     def xnor(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1192,7 +1221,7 @@ class bits(list):
 
     def xnor_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1209,7 +1238,7 @@ class bits(list):
 
     def __eq__(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1226,7 +1255,7 @@ class bits(list):
 
     def if_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1243,7 +1272,7 @@ class bits(list):
 
     def __ge__(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1260,7 +1289,7 @@ class bits(list):
 
     def imp(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1277,7 +1306,7 @@ class bits(list):
 
     def imp_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1294,7 +1323,7 @@ class bits(list):
 
     def __le__(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1311,7 +1340,7 @@ class bits(list):
 
     def nand(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1328,7 +1357,7 @@ class bits(list):
 
     def nand_(self: bits, other: bits) -> bits:
         """
-        Operation for bit vectors.
+        Logical operation for bit vectors.
 
         >>> results = []
         >>> for (x, y) in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -1343,10 +1372,12 @@ class bits(list):
         """
         return bits([x.nand_(y) for (x, y) in zip(self, other)])
 
-    def __rshift__(self: bits, other) -> bits:
+    def __rshift__(self: bits, other: Union[int, set]) -> bits:
         """
         Overloaded operator for performing rotation and shift operations on
-        bit vectors.
+        bit vectors. When the second parameter is an integer, a shift operation
+        is performed. When the second parameter is a set containing a single
+        integer, a rotation operation is performed.
 
         >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bs = bs >> 3
@@ -1363,7 +1394,7 @@ class bits(list):
         else: # Shift
             return bits([constant(0)]*other) ** bits(self[0:len(self)-other])
 
-    def __lshift__(self: bits, other) -> bits:
+    def __lshift__(self: bits, other: int) -> bits:
         """
         Overloaded operator for performing shift operations on bit vectors.
 
@@ -1374,19 +1405,41 @@ class bits(list):
         """
         return bits(self[other:]) ** bits([constant(0) for _ in range(other)])
 
-    def __truediv__(self: bits, other) -> Sequence[bits]:
+    def __truediv__(self: bits, other: [Union, set, list]) -> Sequence[bits]:
         """
         Overloaded operator for splitting a bit vector into a collection of
-        smaller bit vectors.
+        smaller bit vectors. Three operations are possible depending on the
+        type of the second parameter.
+
+        When the second parameter is an integer, this instance is split into
+        that number of bit vectors. If the size of the vector is not an exact
+        multiple of the integer, the parts in the result may not all be the
+        same length.
 
         >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bss = list(bs / 2)
         >>> ([b.value for b in bss[0]], [b.value for b in bss[1]])
         ([1, 1, 1, 1], [0, 0, 0, 0])
         >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
+        >>> [len(bs) for bs in list(bs / 3)]
+        [2, 3, 3]
+
+        When the second parameter is a set containing a single integer, this
+        instance is split into parts of the size specified by that integer.
+
+        >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bss = list(bs / {2})
         >>> [[b.value for b in bs] for bs in bss]
         [[1, 1], [1, 1], [0, 0], [0, 0]]
+        >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
+        >>> bss = list(bs / {1})
+        >>> [[b.value for b in bs] for bs in bss]
+        [[1], [1], [1], [1], [0], [0], [0], [0]]
+
+        When the second parameter is a list of integers, this instance is split
+        into parts the sizes of which correspond to the entries (in order) of
+        the list of integers.
+
         >>> bs = bits(map(bit, [1, 1, 1, 1, 0, 0, 0, 0]))
         >>> bss = list(bs / [1, 3, 4])
         >>> [[b.value for b in bs] for bs in bss]
@@ -1423,8 +1476,8 @@ class bits(list):
 
 def constants(l: Sequence[int]) -> bits:
     """
-    Synonym for concisely constructing a vector of constant-designated
-    :obj:`bit` objects.
+    Synonym for concisely constructing a vector of :obj:`bit` objects that
+    are designated as constants.
 
     >>> bit.circuit(circuit())
     >>> xs = constants([0, 0, 0])
@@ -1437,8 +1490,8 @@ def constants(l: Sequence[int]) -> bits:
 
 def inputs(l: Sequence[int]) -> bits:
     """
-    Synonym for concisely constructing a vector of input-designated
-    :obj:`bit` objects.
+    Synonym for concisely constructing a vector of :obj:`bit` objects that
+    are designated as inputs.
 
     >>> results = []
     >>> bit.circuit(circuit())
@@ -1453,8 +1506,8 @@ def inputs(l: Sequence[int]) -> bits:
 
 def outputs(l: Sequence[int]) -> bits:
     """
-    Synonym for concisely constructing a vector of output-designated
-    :obj:`bit` objects.
+    Synonym for concisely constructing a vector of :obj:`bit` objects that
+    are designated as outputs.
 
     >>> bit.circuit(circuit())
     >>> xs = bits.zeros(3)
@@ -1469,7 +1522,8 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
     """
     Decorator for automatically synthesizing a circuit from a function that
     takes only :obj:`bit` and/or :obj:`bits` objects as its arguments and
-    returns an output of type :obj:`bit` or :obj:`bits`.
+    returns an output of type :obj:`bit` or :obj:`bits` (or a tuple or list
+    thereof).
 
     In the example below, a function ``equal`` is defined that determines
     whether two bits are equivalent. The use of this decorator causes a
