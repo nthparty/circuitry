@@ -1533,11 +1533,25 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
     ... def equal(x: bit, y: bit) -> bit:
     ...     return (x & y) | ((1 - x) & (1 - y))
 
-    The circuit is introduced as an attribute of the function and can
-    be evaluated on :obj:`bits` objects.
+    The synthesized :obj:`~circuit.circuit.circuit` object is introduced as
+    an attribute of the function and can be evaluated on two bit values (as
+    indicated by the function's type annotation).
 
     >>> [equal.circuit.evaluate([[x], [y]]) for x in (0, 1) for y in (0, 1)]
     [[[1]], [[0]], [[0]], [[1]]]
+
+    Note that the function itself can still be invoked on its own in the usual
+    manner if the supplied inputs are integers or :obj:`bit` instances. When
+    the function is invoked in this way, the output of the function corresponds
+    to its output type annotation.
+
+    >>> equal(0, 1)
+    0
+    >>> b = equal(bit(0), bit(1))
+    >>> isinstance(b, bit)
+    True
+    >>> int(b)
+    0
 
     This decorator can also be applied to functions that are defined
     explicitly as operating on bit vectors (in the form of :obj:`bits`
