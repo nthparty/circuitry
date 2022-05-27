@@ -13,6 +13,7 @@ setup(
     packages=[name,],
     install_requires=[
         "parts~=1.3",
+        "bitlist~=0.7",
         "circuit~=1.0"
     ],
     license="MIT",
