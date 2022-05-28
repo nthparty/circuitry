@@ -64,7 +64,6 @@ autodoc_default_options = {
     ])
 }
 autodoc_preserve_defaults = True
-autodoc_type_aliases = {'bits': 'circuit.circuit.bits'}
 
 def autodoc_skip_member_handler(app, what, name, obj, skip, options):
     # Keep annotations consistent (and restore missing annotations)
