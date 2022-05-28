@@ -821,6 +821,25 @@ class bits_type(int): # pylint: disable=R0903
     :obj:`bits` constructor implementation and is not intended to be used
     directly. It is not exported.
     """
+    def __str__(self):
+        """
+        Return representation that reflects the meaning and the manner of
+        construction of this instance.
+
+        >>> str(bits_type(32))
+        'bits(32)'
+        """
+        return 'bits(' + str(int(self)) + ')'
+
+    def __repr__(self):
+        """
+        Return representation that reflects the meaning and the manner of
+        construction of this instance.
+
+        >>> bits_type(32)
+        bits(32)
+        """
+        return 'bits(' + str(int(self)) + ')'
 
 class bits(list):
     """
