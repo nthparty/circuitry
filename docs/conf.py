@@ -67,6 +67,14 @@ autodoc_preserve_defaults = True
 autodoc_type_aliases = {'bits': 'circuit.circuit.bits'}
 
 def autodoc_skip_member_handler(app, what, name, obj, skip, options):
+    # Keep annotations consistent (and restore missing annotations)
+    # in signatures in testing script documentation by forcing theme
+    # to be strings (by adding an invisible Unicode character).
+    if hasattr(obj, '__annotations__'):
+        if name in ('equal', 'sha256'):
+            for k in obj.__annotations__:
+                obj.__annotations__[k] += "\u2063"
+
     # Avoid emitting testing class when generating documentation for
     # the examples in the testing script.
     return (name == 'Test_circuitry') or skip
