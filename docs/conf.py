@@ -75,9 +75,14 @@ def autodoc_skip_member_handler(app, what, name, obj, skip, options):
             for k in obj.__annotations__:
                 obj.__annotations__[k] += "\u2063"
 
+    # Do not emit internal class used for bit vector type annotations.
+    skip |= (name == 'bits_type')
+
     # Avoid emitting testing class when generating documentation for
     # the examples in the testing script.
-    return (name == 'Test_circuitry') or skip
+    skip |= (name == 'Test_circuitry')
+
+    return skip
 
 def setup(app):
     app.connect('autodoc-skip-member', autodoc_skip_member_handler)
