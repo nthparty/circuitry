@@ -10,6 +10,7 @@ in more detail in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
 from __future__ import annotations
 import doctest
 from unittest import TestCase
+from importlib import import_module
 from itertools import product
 from functools import reduce
 import secrets
@@ -212,6 +213,17 @@ class Test_circuitry(TestCase):
     """
     Tests involving published examples demonstrating the use of the library.
     """
+    def test_exports(self):
+        """
+        Checks that the module exports the expected classes and functions.
+        """
+        module = import_module('circuitry.circuitry')
+        self.assertTrue({
+            'bit', 'constant', 'input', 'input_one', 'input_two', 'output', \
+            'bits', 'constants', 'inputs', 'outputs', \
+            'synthesize'
+        }.issubset(module.__dict__.keys()))
+
     def test_example_equal(self):
         """
         Tests synthesis of a circuit for a simple single-bit equality
