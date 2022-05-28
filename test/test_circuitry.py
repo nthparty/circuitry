@@ -1,8 +1,14 @@
 """
-Test suite containing published examples that demonstrate how the
-library can be used to synthesize circuits from functions.
+Test suite containing examples that demonstrate how the library can be used
+to synthesize circuits from functions.
+
+To view the source code of an example function, click its **[source]** link.
+These examples (as well as additional background information) are discussed
+in more detail in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
 """
 # pylint: disable=C0301 # Accommodate original format of published examples.
+from __future__ import annotations
+import doctest
 from unittest import TestCase
 from itertools import product
 from functools import reduce
@@ -11,21 +17,54 @@ import hashlib
 from parts import parts
 from bitlist import bitlist
 
-from circuitry import * # pylint: disable=W0401, W0614
+try:
+    from circuitry import * # pylint: disable=W0401, W0614
+except: # pylint: disable=W0702
+    # Support validation of docstrings in this script via its direct execution.
+    import sys
+    sys.path.append('./circuitry')
+    from circuitry import * # pylint: disable=W0401, W0614
 
 @synthesize
 def equal(x: bit, y: bit) -> bit:
     """
-    Function that performs a simple single-bit equality function
+    Function that performs a simple single-bit equality calculation
     using logical and arithmetic operations.
+
+    The synthesized :obj:`~circuit.circuit.circuit` object is introduced as
+    an attribute of the function and can be evaluated on two bit values (as
+    indicated by the function's type annotation).
+
+    >>> equal.circuit.evaluate([[0], [1]])
+    [[0]]
+
+    Note that the function itself can still be invoked on its own in the usual
+    manner if the supplied inputs are integers or :obj:`bit` instances. When
+    the function is invoked in this way, the output of the function corresponds
+    to its output type annotation.
+
+    >>> equal(0, 1)
+    0
+    >>> b = equal(bit(0), bit(1))
+    >>> isinstance(b, bit)
+    True
+    >>> int(b)
+    0
     """
     return (x & y) | ((1 - x) & (1 - y))
 
 @synthesize
 def equals_iterative(xs: bits(8), ys: bits(8)) -> bit:
     """
-    Function that performs a simple single-bit equality function
-    using logical and arithmetic operations.
+    Function that employs an iterative approach and performs a bit vector
+    equality calculation. This function invokes both the single-bit equality
+    function defined above and the logical conjunction operation.
+
+    >>> bs = [0, 1, 1, 0, 1, 0, 1, 0]
+    >>> equals_iterative.circuit.evaluate([bs, bs])
+    [[1]]
+    >>> equals_iterative.circuit.evaluate([bs, list(reversed(bs))])
+    [[0]]
     """
     z = 1
     for i in range(8):
@@ -34,13 +73,31 @@ def equals_iterative(xs: bits(8), ys: bits(8)) -> bit:
 
 @synthesize
 def equals_functional(xs: bits(8), ys: bits(8)) -> bit:
+    """
+    Function that employs a functional approach and performs a bit vector
+    equality calculation. This function invokes both the single-bit equality
+    function defined above and the logical conjunction operation.
+
+    >>> bs = [0, 1, 1, 0, 1, 0, 1, 0]
+    >>> equals_functional.circuit.evaluate([bs, bs])
+    [[1]]
+    >>> equals_functional.circuit.evaluate([bs, list(reversed(bs))])
+    [[0]]
+    """
     es = [equal(x, y) for (x, y) in zip(xs, ys)]
     return reduce((lambda e0, e1: e0 & e1), es)
 
 def add32(xs, ys):
     """
-    Addition of 32-bit vectors intended for use with the SHA-256
-    implementation.
+    Function that performs addition of 32-bit vectors. This function is
+    intended for use by the :obj:`sha256` function that implements
+    SHA-256.
+
+    Note that this is a helper function that is invoked by the :obj:`sha256`
+    function. **It is not decorated** because **execution of** :obj:`sha256`
+    **is what synthesizes the overall SHA-256 circuit**. The body of this
+    function could have been inlined within the body of the :obj:`sha256`
+    function without impacting the synthesis of the SHA-256 circuit.
     """
     (xs, ys) = (list(reversed(xs)), list(reversed(ys)))
     (x0, xt, y0, yt) = (xs[0], xs[1:], ys[0], ys[1:])
@@ -57,7 +114,13 @@ def sha256_iteration(d_8_32s, m_64_8s):
     Perform a single iteration of the SHA-256 hash computation over the current
     digest (consisting of 32 distinct bit vectors, each having 8 bits) based on a
     message portion (consisting of 64 distinct bit vectors, each having 8 bits) to
-    produce an intermediate digest.
+    produce the next digest.
+
+    Note that this is a helper function that is invoked by the :obj:`sha256`
+    function. **It is not decorated** because **execution of** :obj:`sha256`
+    **is what synthesizes the overall SHA-256 circuit**. The body of this
+    function could have been inlined within the body of the :obj:`sha256`
+    function without impacting the synthesis of the SHA-256 circuit.
     """
     # Table of constants (64 bit vectors each having 32 bits).
     table = [constants(list(bitlist(i, 32))) for i in [
@@ -98,11 +161,38 @@ def sha256_iteration(d_8_32s, m_64_8s):
 @synthesize
 def sha256(message: bits(512)) -> bits(256):
     """
-    Accept ``message``, a list of bit vectors each having 8 bits (for a total
-    number of bits up to 1024), and compute a SHA-256 message digest as the output
-    consisting of 32 distinct bit vectors (each having 8 bits).
+    Accept  an appropriately padded bit vector of length 512, and compute a SHA-256 message
+    digest as the output (represented as a bit vector having 256 bits).
+
+    This SHA-256 algorithm conforms to the
+    `FIPS 180-4 specification <https://www.tandfonline.com/doi/abs/10.1080/01611194.2012.687431>`_
+    and expects inputs that are appropriately padded. The example below demonstrates
+    how an appropriate input byte vector can be constructed for the synthesized
+    circuit.
+
+    >>> input_bytes = bytes([1, 2, 3])
+    >>> input_padding = (
+    ...     bytes([128] + ([0] * (55 - len(input_bytes)))) +
+    ...     int(8 * len(input_bytes)).to_bytes(8, 'big')
+    ... )
+
+    When evaluating the synthesized circuit, the input must be converted into a bit vector.
+    Note that the output consists of a list containing a single bit vector that has 256 bits.
+
+    >>> [output_bits] = sha256.circuit.evaluate([
+    ...     [
+    ...         b
+    ...         for byte in (input_bytes + input_padding)
+    ...         for b in bitlist(byte, 8)
+    ...     ]
+    ... ])
+
+    The output can be compared to a reference implementation.
+
+    >>> bitlist(output_bits).hex() == hashlib.sha256(input_bytes).hexdigest()
+    True
     """
-    # Split input into 8-bit vectors.
+    # Split input bit vector into a list of bit vectors, each having 8 bits.
     message = [bits(bs) for bs in parts(message, length=8)]
 
     # Initial digest value represented as eight 32-bit vectors.
@@ -199,6 +289,10 @@ class Test_circuitry(TestCase):
         can only operate on one length of input. Due to padding requirements, input
         lengths for SHA-256 come in exact multiples of 512; therefore, a distinct
         circuit must be synthesized for each multiple of 512.
+
+        Note that while the :obj:`sha256` method is annotated for a specific input
+        bit vector size, the tests below override this annotation by invoking
+        circuit synthesis programmatically (thus supplying a different annotation).
         """
         # Perform a few tests for each length of input.
         for multiple in range(2, 6):
@@ -229,3 +323,6 @@ class Test_circuitry(TestCase):
                     bitlist(output_bits).hex(),
                     hashlib.sha256(input_bytes).hexdigest()
                 )
+
+# Always invoke the doctests in this module.
+doctest.testmod()

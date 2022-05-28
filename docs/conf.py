@@ -37,7 +37,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx'
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.viewcode'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -63,6 +64,15 @@ autodoc_default_options = {
     ])
 }
 autodoc_preserve_defaults = True
+autodoc_type_aliases = {'bits': 'circuit.circuit.bits'}
+
+def autodoc_skip_member_handler(app, what, name, obj, skip, options):
+    # Avoid emitting testing class when generating documentation for
+    # the examples in the testing script.
+    return (name == 'Test_circuitry') or skip
+
+def setup(app):
+    app.connect('autodoc-skip-member', autodoc_skip_member_handler)
 
 # Allow references to classes defined in the Python documentation.
 intersphinx_mapping = {

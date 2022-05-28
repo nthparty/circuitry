@@ -107,7 +107,7 @@ Because a circuit is synthesized via standard execution of a decorated Python fu
     >>> equals.circuit.count() # Number of gates in circuit.
     64
 
-A more complex example involving an implementation of SHA-265 that conforms to the `FIPS 180-4 specification <https://www.tandfonline.com/doi/abs/10.1080/01611194.2012.687431>`_ is found in the testing script that accompanies this library. The SHA-256 example is also described in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
+A more complex example involving an implementation of SHA-265 that conforms to the `FIPS 180-4 specification <https://www.tandfonline.com/doi/abs/10.1080/01611194.2012.687431>`_ is found in the `testing script <https://circuitry.readthedocs.io/en/latest/_source/test_circuitry.html>`_ that accompanies this library. The SHA-256 example is also described in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
 
 Documentation
 -------------
@@ -126,9 +126,10 @@ All unit tests are executed and their coverage is measured when using `pytest <h
     python -m pip install pytest pytest-cov
     python -m pytest
 
-The subset of the unit tests included in the module itself can be executed using `doctest <https://docs.python.org/3/library/doctest.html>`_::
+The subset of the unit tests included in the module itself and the *documentation examples* that appear in the testing script can be executed separately using `doctest <https://docs.python.org/3/library/doctest.html>`_::
 
     python circuitry/circuitry.py -v
+    python test/test_circuitry.py -v
 
 Style conventions are enforced using `Pylint <https://www.pylint.org/>`_::
 
