@@ -68,7 +68,7 @@ def equals_iterative(xs: bits(8), ys: bits(8)) -> bit:
     [[0]]
     """
     z = 1
-    for i in range(8):
+    for i in range(min(len(xs), len(ys))):
         z = z & equal(xs[i], ys[i])
     return z
 
