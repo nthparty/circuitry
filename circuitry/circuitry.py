@@ -1,6 +1,12 @@
 """
 Embedded domain-specific combinator library for assembling abstract definitions
-of logic circuits and synthesizing circuits from those definitions.
+of logical circuits and for automatically synthesizing circuits from those
+definitions.
+
+This library makes it possible both to construct circuits **programmatically** (see
+the documentation for the :obj:`bit` class) and to synthesize circuits **in an
+automated manner** from Python function definitions (see the documentation for
+the :obj:`synthesize` function).
 """
 from __future__ import annotations
 from typing import Sequence, Union, Optional, Callable
@@ -14,10 +20,18 @@ class bit:
     Class for representing an abstract bit. Such a bit can be interpreted
     concretely as a value, but it is also used to keep track of relationships
     between operators and to represent the individual wires within a circuit
-    that is built up from gates that correspond to those operators.
+    that is programmatically built up from gates that correspond to those
+    operators.
 
-    It is first necessary to introduce a new circuit object and to designate
-    this object as the circuit that is being constructed.
+    **The documentation for this class describes how circuits can be
+    synthesized programmatically using the methods made available by this
+    class. Consult the documentation for the** :obj:`synthesize` **function
+    to learn how circuits can be synthesized automatically from Python function
+    definitions.**
+
+    When constructing a circuit programmatically, it is first necessary to
+    introduce a new circuit object and to designate this object as the circuit
+    that is being constructed.
 
     >>> c = circuit()
     >>> bit.circuit(c)

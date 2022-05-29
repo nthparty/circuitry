@@ -20,8 +20,8 @@ setup(
     url="https://github.com/nthparty/circuitry",
     author="Andrei Lapets",
     author_email="a@lapets.io",
-    description="Embedded domain-specific combinator library for "+\
-                "assembling abstract definitions of logic circuits.",
+    description="Embedded domain-specific combinator library for the abstract "+\
+                "assembly and automated synthesis of logical circuits.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
 )

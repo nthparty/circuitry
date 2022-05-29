@@ -2,7 +2,7 @@
 circuitry
 =========
 
-Embedded domain-specific combinator library for assembling abstract definitions of logic circuits.
+Embedded domain-specific combinator library for the abstract assembly and automated synthesis of logical circuits.
 
 |pypi| |readthedocs| |actions| |coveralls|
 
@@ -24,11 +24,11 @@ Embedded domain-specific combinator library for assembling abstract definitions 
 
 Purpose
 -------
-This embedded domain-specific language (DSL) makes it possible to write an algorithm in Python that operates over bit vectors, and then to interpret that algorithm implementation as a circuit definition in order to synthesize a logic circuit represented using the `circuit <https://github.com/reity/circuit>`_ library. Additional background information and examples can be found in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
+This embedded domain-specific language (DSL) makes it possible to write an algorithm in Python that operates on bit values and/or bit vectors, and then to interpret that algorithm implementation as a circuit definition in order to synthesize automatically a logical circuit represented using the `circuit <https://pypi.org/project/circuit>`_ library. Additional background information and examples can be found in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
 
 Package Installation and Usage
 ------------------------------
-The package is available on `PyPI <https://pypi.org/project/circuitry/>`_::
+The package is available on `PyPI <https://pypi.org/project/circuitry>`_::
 
     python -m pip install circuitry
 
@@ -52,7 +52,7 @@ Examples
 .. |disjunction| replace:: ``__or__``
 .. _disjunction: https://circuitry.readthedocs.io/en/latest/_source/circuitry.html#circuitry.circuitry.bit.__or__
 
-This library makes it possible to embed within Python a function that operates on bits (subject to specific limitations) and then to automatically synthesize a logical circuit that implements that function. In the simple example below, the defined bit equality function takes two |bit|_ objects as its inputs and returns one |bit|_ object as its output. Because nearly all built-in Python operators are supported by the |bit|_ class via `appropriate method definitions <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`_ (*e.g.*, see the |disjunction|_ method), the statements and expressions in the function can employ a straightforward and familiar syntax::
+This library makes it possible to embed within Python a function that operates on individual bits and/or bit vectors (subject to specific limitations) and then to automatically synthesize a logical circuit that implements that function. In the simple example below, the defined bit equality function takes two |bit|_ objects as its inputs and returns one |bit|_ object as its output. Because nearly all built-in Python operators are supported by the |bit|_ class via `appropriate method definitions <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`_ (*e.g.*, see the |disjunction|_ method), the statements and expressions in the function can employ a straightforward and familiar syntax::
 
     >>> from circuitry import *
     >>> @synthesize
@@ -72,7 +72,7 @@ The function itself can be invoked in the usual manner if the supplied inputs ar
 .. |circuit__| replace:: ``circuit``
 .. _circuit__: https://circuit.readthedocs.io/en/latest/_source/circuit.html#circuit.circuit.circuit
 
-The |synthesize|_ decorator automatically synthesizes the corresponding circuit (as an instance of the |circuit_|_ class defined in the `circuit <https://pypi.org/project/circuit/>`__ library). The synthesized |circuit__|_ object is stored within an attribute of the function itself and can be evaluated on two bit values (as specified by the function's type annotation). See the documentation of the `circuit <https://pypi.org/project/circuit/>`__ library for more information on how input bit vectors should be structured when evaluating a circuit::
+The |synthesize|_ decorator automatically synthesizes the corresponding circuit (as an instance of the |circuit_|_ class defined in the `circuit <https://pypi.org/project/circuit>`__ library). The synthesized |circuit__|_ object is stored within an attribute of the function itself and can be evaluated on two bit values (as specified by the function's type annotation). See the documentation of the `circuit <https://pypi.org/project/circuit>`__ library for more information on how input bit vectors should be structured when evaluating a circuit::
 
     >>> equal.circuit.evaluate([[0], [1]])
     [[0]]
@@ -94,7 +94,7 @@ The |synthesize|_ decorator can also be applied to functions that are defined ex
     >>> equals.circuit.count() # Number of gates in circuit.
     66
 
-Because a circuit is synthesized via standard execution of a decorated Python function, all native Python language features (and even external libraries) can be employed. The most important constraint (which is the responsibility of the programmer to maintain) is that the execution of the function (*e.g.*, the `flow of control <https://en.wikipedia.org/wiki/Control_flow>`_) should not depend on the *values* of the inputs bits. The alternative implementation below demonstrates that recursion and higher-order functions can be used within decorated functions::
+Because a circuit is synthesized via standard execution of a decorated Python function, all native Python language features (and even external libraries) can be employed. The most important constraint (which is the responsibility of the programmer to maintain) is that the execution of the function (*i.e.*, the `flow of control <https://en.wikipedia.org/wiki/Control_flow>`_) should not depend on the *values* of the inputs bits. The alternative implementation below demonstrates that recursion and higher-order functions can be used within decorated functions::
 
     >>> from functools import reduce
     >>> @synthesize
@@ -107,7 +107,7 @@ Because a circuit is synthesized via standard execution of a decorated Python fu
     >>> equals.circuit.count() # Number of gates in circuit.
     64
 
-A more complex example involving an implementation of SHA-265 that conforms to the `FIPS 180-4 specification <https://www.tandfonline.com/doi/abs/10.1080/01611194.2012.687431>`_ is found in the `testing script <https://circuitry.readthedocs.io/en/latest/_source/test_circuitry.html>`_ that accompanies this library. The SHA-256 example is also described in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
+A `more complex example <https://circuitry.readthedocs.io/en/latest/_source/test_circuitry.html#test.test_circuitry.sha256>`_ involving an implementation of SHA-265 that conforms to the `FIPS 180-4 specification <https://www.tandfonline.com/doi/abs/10.1080/01611194.2012.687431>`_ is found in the `testing script <https://circuitry.readthedocs.io/en/latest/_source/test_circuitry.html>`_ that accompanies this library. The SHA-256 example is also described in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
 
 Documentation
 -------------
@@ -146,7 +146,7 @@ Beginning with version 0.1.0, the version number format for this library and the
 
 Publishing
 ----------
-This library can be published as a `package on PyPI <https://pypi.org/project/circuitry/>`_ by a package maintainer. Install the `wheel <https://pypi.org/project/wheel/>`_ package, remove any old build/distribution files, and package the source into a distribution archive::
+This library can be published as a `package on PyPI <https://pypi.org/project/circuitry>`_ by a package maintainer. Install the `wheel <https://pypi.org/project/wheel/>`_ package, remove any old build/distribution files, and package the source into a distribution archive::
 
     python -m pip install wheel
     rm -rf dist *.egg-info
