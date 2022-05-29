@@ -19,12 +19,12 @@ from parts import parts
 from bitlist import bitlist
 
 try:
-    from circuitry import * # pylint: disable=W0401, W0614
+    from circuitry import bit, bits, constants, synthesize
 except: # pylint: disable=W0702
     # Support validation of docstrings in this script via its direct execution.
     import sys
     sys.path.append('./circuitry')
-    from circuitry import * # pylint: disable=W0401, W0614
+    from circuitry import bit, bits, constants, synthesize
 
 @synthesize
 def equal(x: bit, y: bit) -> bit:
@@ -90,9 +90,9 @@ def equals_functional(xs: bits(8), ys: bits(8)) -> bit:
 
 def add32(xs, ys):
     """
-    Function that performs addition of 32-bit vectors. This function is
-    intended for use by the :obj:`sha256` function that implements
-    SHA-256.
+    Function that performs addition of two interegers that are represented
+    as 32-bit vectors. This function is intended for use by the :obj:`sha256`
+    function that implements SHA-256.
 
     Note that this is a helper function that is invoked by the :obj:`sha256`
     function. **It is not decorated** because **execution of** :obj:`sha256`
@@ -102,20 +102,22 @@ def add32(xs, ys):
     """
     (xs, ys) = (list(reversed(xs)), list(reversed(ys)))
     (x0, xt, y0, yt) = (xs[0], xs[1:], ys[0], ys[1:])
-    (s, c) = (x0 ^ y0, x0 & y0)
-    def combine(zs_, xy):
-        c = zs_.pop()
-        (_xor, _and) = (xy[0] ^ xy[1], xy[0] & xy[1])
-        return zs_ + [_xor ^ c, _and | (_xor & c)]
-    zs = [s] + list(reduce(combine, zip(xt, yt), [c]))[:-1]
-    return bits(list(reversed(zs)))
+    carry = x0 & y0
+    def combine(zs, xy):
+        carry = zs.pop()
+        add = xy[0] ^ xy[1] # Reuse via variable reduces number of synthesized gates.
+        return zs + [add ^ carry, (xy[0] & xy[1]) | (add & carry)]
+
+    return bits(list(reversed(
+        [x0 ^ y0] + list(reduce(combine, zip(xt, yt), [carry]))[:-1]
+    )))
 
 def sha256_iteration(d_8_32s, m_64_8s):
     """
-    Perform a single iteration of the SHA-256 hash computation over the current
-    digest (consisting of 32 distinct bit vectors, each having 8 bits) based on a
-    message portion (consisting of 64 distinct bit vectors, each having 8 bits) to
-    produce the next digest.
+    Perform a single iteration of the SHA-256 digest computation on the current
+    digest (consisting of 32 distinct bit vectors, each having 8 bits) based on
+    a message portion (consisting of 64 distinct bit vectors, each having 8
+    bits) to produce the next digest.
 
     Note that this is a helper function that is invoked by the :obj:`sha256`
     function. **It is not decorated** because **execution of** :obj:`sha256`
@@ -146,7 +148,6 @@ def sha256_iteration(d_8_32s, m_64_8s):
     w = [] # Message schedule.
     for j in range(16):
         w.append(m_64_8s[j*4] + m_64_8s[j*4+1] + m_64_8s[j*4+2] + m_64_8s[j*4+3])
-
     for j in range(16, 64):
         w.append(add32(add32(add32(sigma_1(w[j-2]), w[j-7]), sigma_0(w[j-15])), w[j-16]))
 
@@ -157,12 +158,12 @@ def sha256_iteration(d_8_32s, m_64_8s):
         t2 = add32(Sigma_0(wv[0]), Maj(wv[0], wv[1], wv[2]))
         wv = [add32(t1, t2), wv[0], wv[1], wv[2], add32(wv[3], t1), wv[4], wv[5], wv[6]]
 
-    return [add32(d_8_32s[j], wv[j]) for j in range(8)] # Return intermediate hash.
+    return [add32(d_8_32s[j], wv[j]) for j in range(8)] # Return next digest.
 
 @synthesize
 def sha256(message: bits(512)) -> bits(256):
     """
-    Accept  an appropriately padded bit vector of length 512, and compute a SHA-256 message
+    Accept an appropriately padded bit vector of length 512 and compute a SHA-256 message
     digest as the output (represented as a bit vector having 256 bits).
 
     This SHA-256 algorithm conforms to the
@@ -193,10 +194,10 @@ def sha256(message: bits(512)) -> bits(256):
     >>> bitlist(output_bits).hex() == hashlib.sha256(input_bytes).hexdigest()
     True
     """
-    # Split input bit vector into a list of bit vectors, each having 8 bits.
-    message = [bits(bs) for bs in parts(message, length=8)]
+    # Split input into list of vectors, each having 8 bits.
+    message = [bits(p) for p in parts(message, length=8)]
 
-    # Initial digest value represented as eight 32-bit vectors.
+    # Initial digest: eight bit vectors each having 32 bits.
     digest = [constants(list(bitlist(i, 32))) for i in [
         1779033703, 3144134277, 1013904242, 2773480762,
         1359893119, 2600822924,  528734635, 1541459225
@@ -206,7 +207,7 @@ def sha256(message: bits(512)) -> bits(256):
     for i in range(len(message) // 64):
         digest = sha256_iteration(digest, message[(i * 64) : (i * 64) + 64])
 
-    # Flatten 8-bit vectors each having 32 bits into a single 256-bit vector.
+    # Flatten 8-bit vectors (each of 32 bits) into single 256-bit vector.
     return [b for bs in digest for b in bs]
 
 class Test_circuitry(TestCase):
