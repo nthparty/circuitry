@@ -18,7 +18,7 @@ jobs:
       - name: Lint and test module.
         run: |
           pip install -U .[lint,test]
-          python -m pylint circuitry # Check against linting rules.
+          python -m pylint circuitry test/test_circuitry.py # Check against linting rules.
           python -m pytest # Run tests.
       - name: Publish coverage results.
         run: |
