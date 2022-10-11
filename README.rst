@@ -24,11 +24,11 @@ Embedded domain-specific combinator library for the abstract assembly and automa
 
 Purpose
 -------
-This embedded domain-specific language (DSL) makes it possible to write an algorithm in Python that operates on bit values and/or bit vectors, and then to interpret that algorithm implementation as a circuit definition in order to synthesize automatically a logical circuit represented using the `circuit <https://pypi.org/project/circuit>`_ library. Additional background information and examples can be found in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
+This embedded domain-specific language (DSL) makes it possible to write an algorithm in Python that operates on bit values and/or bit vectors, and then to interpret that algorithm implementation as a circuit definition in order to synthesize automatically a logical circuit represented using the `circuit <https://pypi.org/project/circuit>`__ library. Additional background information and examples can be found in a `relevant report <https://eprint.iacr.org/2020/1604>`__.
 
-Package Installation and Usage
-------------------------------
-The package is available on `PyPI <https://pypi.org/project/circuitry>`_::
+Installation and Usage
+----------------------
+This library is available as a `package on PyPI <https://pypi.org/project/circuitry>`__::
 
     python -m pip install circuitry
 
@@ -52,7 +52,7 @@ Examples
 .. |disjunction| replace:: ``__or__``
 .. _disjunction: https://circuitry.readthedocs.io/en/latest/_source/circuitry.html#circuitry.circuitry.bit.__or__
 
-This library makes it possible to embed within Python a function that operates on individual bits and/or bit vectors (subject to specific limitations) and then to automatically synthesize a logical circuit that implements that function. In the simple example below, the defined bit equality function takes two |bit|_ objects as its inputs and returns one |bit|_ object as its output. Because nearly all built-in Python operators are supported by the |bit|_ class via `appropriate method definitions <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`_ (*e.g.*, see the |disjunction|_ method), the statements and expressions in the function can employ a straightforward and familiar syntax::
+This library makes it possible to embed within Python a function that operates on individual bits and/or bit vectors (subject to specific limitations) and then to automatically synthesize a logical circuit that implements that function. In the simple example below, the defined bit equality function takes two |bit|_ objects as its inputs and returns one |bit|_ object as its output. Because nearly all built-in Python operators are supported by the |bit|_ class via `appropriate method definitions <https://docs.python.org/3/reference/datamodel.html#emulating-numeric-types>`__ (*e.g.*, see the |disjunction|_ method), the statements and expressions in the function can employ a straightforward and familiar syntax::
 
     >>> from circuitry import *
     >>> @synthesize
@@ -94,7 +94,7 @@ The |synthesize|_ decorator can also be applied to functions that are defined ex
     >>> equals.circuit.count() # Number of gates in circuit.
     66
 
-Because a circuit is synthesized via standard execution of a decorated Python function, all native Python language features (and even external libraries) can be employed. The most important constraint (which is the responsibility of the programmer to maintain) is that the execution of the function (*i.e.*, the `flow of control <https://en.wikipedia.org/wiki/Control_flow>`_) should not depend on the *values* of the inputs bits. The alternative implementation below demonstrates that recursion and higher-order functions can be used within decorated functions::
+Because a circuit is synthesized via standard execution of a decorated Python function, all native Python language features (and even external libraries) can be employed. The most important constraint (which is the responsibility of the programmer to maintain) is that the execution of the function (*i.e.*, the `flow of control <https://en.wikipedia.org/wiki/Control_flow>`__) should not depend on the *values* of the inputs bits. The alternative implementation below demonstrates that recursion and higher-order functions can be used within decorated functions::
 
     >>> from functools import reduce
     >>> @synthesize
@@ -107,52 +107,58 @@ Because a circuit is synthesized via standard execution of a decorated Python fu
     >>> equals.circuit.count() # Number of gates in circuit.
     64
 
-A `more complex example <https://circuitry.readthedocs.io/en/latest/_source/test_circuitry.html#test.test_circuitry.sha256>`_ involving an implementation of SHA-265 that conforms to the `FIPS 180-4 specification <https://www.tandfonline.com/doi/abs/10.1080/01611194.2012.687431>`_ is found in the `testing script <https://circuitry.readthedocs.io/en/latest/_source/test_circuitry.html>`_ that accompanies this library. The SHA-256 example is also described in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
+A `more complex example <https://circuitry.readthedocs.io/en/latest/_source/test_circuitry.html#test.test_circuitry.sha256>`__ involving an implementation of SHA-265 that conforms to the `FIPS 180-4 specification <https://www.tandfonline.com/doi/abs/10.1080/01611194.2012.687431>`__ is found in the `testing script <https://circuitry.readthedocs.io/en/latest/_source/test_circuitry.html>`__ that accompanies this library. The SHA-256 example is also described in a `relevant report <https://eprint.iacr.org/2020/1604>`__.
+
+Development
+-----------
+All installation and development dependencies are fully specified in ``pyproject.toml``. The ``project.optional-dependencies`` object is used to `specify optional requirements <https://peps.python.org/pep-0621>`__ for various development tasks. This makes it possible to specify additional options (such as ``docs``, ``lint``, and so on) when performing installation using `pip <https://pypi.org/project/pip>`__::
+
+    python -m pip install .[docs,lint]
 
 Documentation
--------------
-.. include:: toc.rst
+^^^^^^^^^^^^^
+The documentation can be generated automatically from the source files using `Sphinx <https://www.sphinx-doc.org>`__::
 
-The documentation can be generated automatically from the source files using `Sphinx <https://www.sphinx-doc.org/>`_::
-
+    python -m pip install .[docs]
     cd docs
-    python -m pip install -r requirements.txt
-    sphinx-apidoc -f -E --templatedir=_templates -o _source .. ../setup.py && make html
+    sphinx-apidoc -f -E --templatedir=_templates -o _source .. && make html
 
 Testing and Conventions
------------------------
-All unit tests are executed and their coverage is measured when using `pytest <https://docs.pytest.org/>`_ (see ``setup.cfg`` for configuration details)::
+^^^^^^^^^^^^^^^^^^^^^^^
+All unit tests are executed and their coverage is measured when using `pytest <https://docs.pytest.org>`__ (see the ``pyproject.toml`` file for configuration details)::
 
-    python -m pip install pytest pytest-cov
+    python -m pip install .[test]
     python -m pytest
 
-The subset of the unit tests included in the module itself and the *documentation examples* that appear in the testing script can be executed separately using `doctest <https://docs.python.org/3/library/doctest.html>`_::
+The subset of the unit tests included in the module itself and the *documentation examples* that appear in the testing script can be executed separately using `doctest <https://docs.python.org/3/library/doctest.html>`__::
 
     python circuitry/circuitry.py -v
     python test/test_circuitry.py -v
 
-Style conventions are enforced using `Pylint <https://www.pylint.org/>`_::
+Style conventions are enforced using `Pylint <https://pylint.pycqa.org>`__::
 
-    python -m pip install pylint
+    python -m pip install .[lint]
     python -m pylint circuitry ./test/test_circuitry.py
 
 Contributions
--------------
-In order to contribute to the source code, open an issue or submit a pull request on the `GitHub page <https://github.com/nthparty/circuitry>`_ for this library.
+^^^^^^^^^^^^^
+In order to contribute to the source code, open an issue or submit a pull request on the `GitHub page <https://github.com/nthparty/circuitry>`__ for this library.
 
 Versioning
-----------
-Beginning with version 0.1.0, the version number format for this library and the changes to the library associated with version number increments conform with `Semantic Versioning 2.0.0 <https://semver.org/#semantic-versioning-200>`_.
+^^^^^^^^^^
+Beginning with version 0.1.0, the version number format for this library and the changes to the library associated with version number increments conform with `Semantic Versioning 2.0.0 <https://semver.org/#semantic-versioning-200>`__.
 
 Publishing
-----------
-This library can be published as a `package on PyPI <https://pypi.org/project/circuitry>`_ by a package maintainer. Install the `wheel <https://pypi.org/project/wheel/>`_ package, remove any old build/distribution files, and package the source into a distribution archive::
+^^^^^^^^^^
+This library can be published as a `package on PyPI <https://pypi.org/project/circuitry>`__ by a package maintainer. First, install the dependencies required for packaging and publishing::
 
-    python -m pip install wheel
-    rm -rf dist *.egg-info
-    python setup.py sdist bdist_wheel
+    python -m pip install .[publish]
 
-Next, install the `twine <https://pypi.org/project/twine/>`_ package and upload the package distribution archive to PyPI::
+Remove any old build/distribution files and package the source into a distribution archive::
 
-    python -m pip install twine
+    rm -rf build dist *.egg-info
+    python -m build --sdist --wheel .
+
+Finally, upload the package distribution archive to `PyPI <https://pypi.org>`__ using the `twine <https://pypi.org/project/twine>`__ package::
+
     python -m twine upload dist/*

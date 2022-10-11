@@ -1,7 +1,6 @@
-The library contains one module and includes a testing script with a few working examples:
-
 .. toctree::
    :maxdepth: 3
+   :hidden:
 
    _source/circuitry
    _source/test_circuitry

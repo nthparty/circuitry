@@ -17,17 +17,17 @@ jobs:
           architecture: x64
       - name: Lint and test module.
         run: |
-          pip install -U pylint pytest pytest-cov .
+          pip install -U .[lint,test]
           python -m pylint circuitry # Check against linting rules.
           python -m pytest # Run tests.
       - name: Publish coverage results.
         run: |
-          pip install -U coveralls
+          pip install -U .[coveralls]
           python -m coveralls --service=github # Submit to coveralls.
         if: matrix.python-version == '3.8'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Test auto-generation of documentation.
         run: |
-          pip install -U -r docs/requirements.txt
-          cd docs && sphinx-apidoc -f -E --templatedir=_templates -o _source .. ../setup.py && make html && cd ..
+          pip install -U .[docs]
+          cd docs && sphinx-apidoc -f -E --templatedir=_templates -o _source .. && make html && cd ..
