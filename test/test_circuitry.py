@@ -6,7 +6,7 @@ To view the source code of an example function, click its **[source]** link.
 These examples (as well as additional background information) are discussed
 in more detail in a `relevant report <https://eprint.iacr.org/2020/1604>`_.
 """
-# pylint: disable=C0301 # Accommodate original format of published examples.
+# pylint: disable=invalid-name # Accommodate original format of published examples.
 from __future__ import annotations
 import doctest
 from unittest import TestCase
@@ -20,7 +20,7 @@ from bitlist import bitlist
 
 try:
     from circuitry import bit, bits, constants, synthesize
-except: # pylint: disable=W0702
+except: # pylint: disable=bare-except
     # Support validation of docstrings in this script via its direct execution.
     import sys
     sys.path.append('./circuitry')

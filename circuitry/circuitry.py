@@ -13,7 +13,7 @@ from typing import Sequence, Union, Optional, Callable
 import doctest
 import inspect
 from parts import parts
-from circuit import op, gate, circuit, signature
+from circuit import op, circuit, signature
 
 class bit:
     """
@@ -70,21 +70,29 @@ class bit:
 
     >>> bit.hook_operation()
     """
+    # pylint: disable=too-many-public-methods
+
     _circuit = None
     _hook_operation = None
 
-    def __init__(self: bit, value: int, gate_: Optional[gate] = None):
+    def __init__(
+            self: bit,
+            value: int,
+            gate: Optional[gate] = None # pylint: disable=redefined-outer-name
+        ):
         """
         Create an instance with the specified value and (if one is supplied)
-        designate an associate gate object.
+        designate an associated gate object.
         """
         self.value = value
 
         if bit._circuit is not None:
-            self.gate = bit._circuit.gate() if gate_ is None else gate_
+            self.gate = bit._circuit.gate() if gate is None else gate
 
     @staticmethod
-    def circuit(circuit_: Optional[circuit] = None) -> Optional[circuit]:
+    def circuit(
+            circuit: Optional[circuit] = None # pylint: disable=redefined-outer-name
+        ) -> Optional[circuit]:
         """
         Designate the circuit object that is under construction. Any invocation
         of the :obj:`bit` constructor adds a gate to the circuit designated
@@ -104,8 +112,8 @@ class bit:
         >>> bit.circuit() is None
         True
         """
-        if circuit_ is not None:
-            bit._circuit = circuit_
+        if circuit is not None:
+            bit._circuit = circuit
             return None
 
         if bit._circuit is not None:
@@ -188,7 +196,7 @@ class bit:
         for a in args:
             if isinstance(a, output):
                 raise TypeError(
-                    "cannot supply an output as an argument to an operation"
+                    'cannot supply an output as an argument to an operation'
                 )
 
         # Compute the value of the result of the operation on the arguments.
@@ -197,14 +205,16 @@ class bit:
         # Return output from hook if it exists and if
         # it returns an output.
         if bit._hook_operation is not None:
-            r = bit._hook_operation(o, v, *args)
+            r = bit._hook_operation(o, v, *args) # pylint: disable=not-callable
             if r is not None:
                 return r
 
         return bit.constructor(*args)(v, bit.gate(o, [a.gate for a in args]))
 
     @staticmethod
-    def constructor(b1: bit, b2: Optional[bit] = None) -> type:
+    def constructor(
+            b1: Optional[bit] = None, b2: Optional[bit] = None # pylint: disable=unused-argument
+        ) -> type:
         """
         Return the constructor to use for instantiating a :obj:`bit` object.
         This method is used by the :obj:`bit.operation` and :obj:`bits.from_byte`
@@ -214,7 +224,7 @@ class bit:
         return bit
 
     @staticmethod
-    def gate(operation: op, igs: Sequence[gate]) -> Optional[gate]:
+    def gate(operation: op, igs: Sequence[gate]) -> Optional[gate]: # pylint: disable=method-hidden
         """
         Add a gate to the designated circuit object that is under construction.
         This method is primarily provided to aid in the implementation of custom
@@ -236,8 +246,8 @@ class bit:
         True
         """
         return (
-            bit._circuit.gate(operation, igs) \
-            if bit._circuit is not None else \
+            bit._circuit.gate(operation, igs)
+            if bit._circuit is not None else
             None
         )
 
@@ -746,13 +756,17 @@ class constant(bit):
     [0]
     """
     def __init__(self: bit, value: int):
-        """Instantiate an instance that is designated as a constant input."""
+        """
+        Instantiate an instance that is designated as a constant input.
+        """
+        super().__init__(value)
+
         self.value = value
 
         if bit._circuit is not None:
             self.gate = bit._circuit.gate(op.nf_ if self.value == 0 else op.nt_)
 
-class input(bit):
+class input(bit): # pylint: disable=redefined-builtin
     """
     Instance of a :obj:`bit` that is designated as a variable input. When an
     :obj:`input` instance is introduced during circuit construction, a gate
@@ -764,7 +778,11 @@ class input(bit):
     0
     """
     def __init__(self: bit, value: int):
-        """Instantiate an instance that is designated as a variable input."""
+        """
+        Instantiate an instance that is designated as a variable input.
+        """
+        super().__init__(value)
+
         self.value = value
 
         if bit._circuit is not None:
@@ -823,6 +841,8 @@ class output(bit):
         """
         Instantiate a bit that is designated as an output.
         """
+        super().__init__(b)
+
         self.value = b.value
 
         if bit._circuit is not None:
@@ -864,16 +884,20 @@ class bits(list):
     >>> [b.value for b in bs]
     [1, 1, 1]
     """
+    # pylint: disable=too-many-public-methods
+
     def __new__(cls, argument=None) -> bits:
         """
         Instantiate bit vector object given the supplied argument.
         """
-        return bits_type(argument)\
-            if isinstance(argument, int) else\
+        return (
+            bits_type(argument)
+            if isinstance(argument, int) else
             list.__new__(cls, argument)
+        )
 
     @staticmethod
-    def from_byte(byte_: int, constructor=bit) -> bits:
+    def from_byte(b: int, constructor=bit) -> bits:
         """
         Convert an integer representing a single byte into a corresponding bit
         vector.
@@ -883,11 +907,11 @@ class bits(list):
         """
         return bits([
             constructor(bit_)
-            for bit_ in reversed([(byte_ >> i) % 2 for i in range(8)])
+            for bit_ in reversed([(b >> i) % 2 for i in range(8)])
         ])
 
     @staticmethod
-    def from_bytes(bytes_, constructor=bit) -> bits:
+    def from_bytes(bs: Union[bytes, bytearray], constructor=bit) -> bits:
         """
         Convert a vector of bytes into a corresponding bit vector.
 
@@ -898,7 +922,7 @@ class bits(list):
         """
         return bits([
             bit_
-            for byte_ in bytes_
+            for byte_ in bs
             for bit_ in bits.from_byte(byte_, constructor)
         ])
 
@@ -1421,11 +1445,13 @@ class bits(list):
         >>> [b.value for b in bs]
         [1, 1, 1, 0, 0, 0, 0, 1]
         """
-        if isinstance(other, set) and isinstance(list(other)[0], int): # Rotation.
+        # Rotation.
+        if isinstance(other, set) and isinstance(list(other)[0], int):
             quantity = list(other)[0]
             return bits(self[len(self)-quantity:]) ** bits(self[0:len(self)-quantity])
-        else: # Shift
-            return bits([constant(0)]*other) ** bits(self[0:len(self)-other])
+
+        # Shift.
+        return bits([constant(0)]*other) ** bits(self[0:len(self)-other])
 
     def __lshift__(self: bits, other: int) -> bits:
         """
@@ -1480,10 +1506,11 @@ class bits(list):
         """
         if isinstance(other, list) and len(other) > 0 and isinstance(other[0], int):
             return map(bits, parts(self, length=other)) # Sequence of lengths.
-        elif isinstance(other, set) and len(other) == 1 and isinstance(list(other)[0], int):
+
+        if isinstance(other, set) and len(other) == 1 and isinstance(list(other)[0], int):
             return self / (len(self)//list(other)[0]) # Parts of length `other`.
-        else:
-            return map(bits, parts(self, other)) # Number of parts is `other`.
+
+        return map(bits, parts(self, other)) # Number of parts is `other`.
 
     def __add__(self: bits, other: Union[bits, Sequence[int]]) -> bits:
         """
@@ -1727,7 +1754,7 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
     # types must be supplied.
     if (in_type is None and out_type is not None) or (in_type is not None and out_type is None):
         raise ValueError(
-            "must include input and output types when supplying type information via parameters"
+            'must include input and output types when supplying type information via parameters'
         )
 
     # If the type information is supplied via parameters, then both input and output
@@ -1740,13 +1767,13 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
             in_type = (in_type,)
         elif isinstance(in_type, (tuple, list)):
             if not all(t is bit or isinstance(t, bits_type) for t in in_type):
-                raise TypeError("input type components must be specified using bit or bits")
+                raise TypeError('input type components must be specified using bit or bits')
         elif isinstance(in_type, dict):
             if not all(t is bit or isinstance(t, bits_type) for t in in_type.values()):
-                raise TypeError("input type components must be specified using bit or bits")
+                raise TypeError('input type components must be specified using bit or bits')
         else:
             raise TypeError(
-                "input type must be specified using bit/bits, or a dict/list/tuple thereof"
+                'input type must be specified using bit/bits, or a dict/list/tuple thereof'
             )
 
         # If the type information is supplied via parameters, ensure that the input type
@@ -1756,7 +1783,7 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
         if isinstance(in_type, (tuple, list)):
             if len(in_type) != len(inspect.getfullargspec(function).args):
                 raise ValueError(
-                    "number of input type components does not match number of function arguments"
+                    'number of input type components does not match number of function arguments'
                 )
             in_type = dict(zip(inspect.getfullargspec(function).args, in_type))
 
@@ -1765,10 +1792,10 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
             out_type = (out_type,)
         elif isinstance(out_type, (tuple, list)):
             if not all(t is bit or isinstance(t, bits_type) for t in out_type):
-                raise TypeError("output type components must be specified using bit or bits")
+                raise TypeError('output type components must be specified using bit or bits')
         else:
             raise TypeError(
-                "output type must be specified using bit/bits, or a list/tuple thereof"
+                'output type must be specified using bit/bits, or a list/tuple thereof'
             )
 
     # If the type information is supplied the function's annotation, ensure that its structure
@@ -1777,15 +1804,15 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
         # Ensure that every one of the function's arguments and its output has a corresponding
         # type annotation.
         if (
-            len([() for k in function.__annotations__ if k != 'return']) \
-            != \
+            len([() for k in function.__annotations__ if k != 'return'])
+            !=
             len(inspect.getfullargspec(function).args)
         ):
             print(function.__code__.co_varnames)
             print(function.__annotations__)
-            raise ValueError("function must have a type annotation for every argument")
+            raise ValueError('function must have a type annotation for every argument')
         if 'return' not in function.__annotations__:
-            raise ValueError("function must have an output type annotation")
+            raise ValueError('function must have an output type annotation')
 
         # Extract the type annotations and evaluate them for later processing.
         in_type = {k: eval_(a) for (k, a) in function.__annotations__.items() if k != 'return'}
@@ -1793,7 +1820,7 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
 
         # Ensure that every argument's type annotation is specified in a valid way.
         if not all(t is bit or isinstance(t, bits_type) for t in in_type.values()):
-            raise TypeError("input type annotations must be specified using bit or bits")
+            raise TypeError('input type annotations must be specified using bit or bits')
 
         # Ensure that the output type annotation is specified in a valid way.
         if out_type is bit or isinstance(out_type, bits_type):
@@ -1801,11 +1828,11 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
         elif isinstance(out_type, (tuple, list)):
             if not all(t is bit or isinstance(t, bits_type) for t in out_type):
                 raise TypeError(
-                    "output type annotation components must be specified using bit or bits"
+                    'output type annotation components must be specified using bit or bits'
                 )
         else:
             raise TypeError(
-                "output type must be specified using bit/bits, or a list/tuple thereof"
+                'output type must be specified using bit/bits, or a list/tuple thereof'
             )
 
     # Designate the circuit to be synthesized.
@@ -1839,5 +1866,5 @@ def synthesize(function: Callable, in_type=None, out_type=None) -> Callable:
     # information supplied via its parameters).
     return function if type_supplied_via_annotation else function_circuit
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     doctest.testmod() # pragma: no cover
