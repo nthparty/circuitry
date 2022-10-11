@@ -97,11 +97,25 @@ def autodoc_skip_member_handler(app, what, name, obj, skip, options):
 def setup(app):
     app.connect('autodoc-skip-member', autodoc_skip_member_handler)
 
-# Allow references to classes defined in the Python documentation.
+# Allow references/links to definitions found in the Python documentation
+# and in the documentation for this package's dependencies.
+
+def rtd_url_for_installed_version(name):
+    prefix = 'https://' + name + '.readthedocs.io/en/'
+
+    if sys.version_info.major == 3 and sys.version_info.minor == 7:
+        import pkg_resources
+        return prefix + pkg_resources.get_distribution(name).version
+
+    import importlib.metadata
+    return prefix + importlib.metadata.version(name)
+
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'logical': ('https://logical.readthedocs.io/en/latest', None),
-    'circuit': ('https://circuit.readthedocs.io/en/latest', None)
+    'parts': (rtd_url_for_installed_version('parts'), None),
+    'bitlist': (rtd_url_for_installed_version('bitlist'), None),
+    'logical': (rtd_url_for_installed_version('logical'), None),
+    'circuit': (rtd_url_for_installed_version('circuit'), None)
 }
 
 
