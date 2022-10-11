@@ -5,16 +5,16 @@ with open("README.rst", "r") as fh:
 
 # The lines below can be parsed by `docs/conf.py`.
 name = "circuitry"
-version = "1.0.0"
+version = "2.0.0"
 
 setup(
     name=name,
     version=version,
     packages=[name,],
     install_requires=[
-        "parts~=1.3",
-        "bitlist~=0.7",
-        "circuit~=1.0"
+        "parts~=1.5",
+        "bitlist~=1.0",
+        "circuit~=2.0"
     ],
     license="MIT",
     url="https://github.com/nthparty/circuitry",

@@ -87,7 +87,7 @@ class bit:
         self.value = value
 
         if bit._circuit is not None:
-            self.gate = bit._circuit.gate() if gate is None else gate
+            self.gate = bit._circuit.gates if gate is None else gate
 
     @staticmethod
     def circuit(
